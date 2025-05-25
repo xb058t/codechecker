@@ -58,5 +58,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 // This section is needed to override the default inherited style.
 </style>

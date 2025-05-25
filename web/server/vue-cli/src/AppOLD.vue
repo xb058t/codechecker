@@ -1,38 +1,50 @@
 <template>
   <v-app id="app">
-    <TheHeader />
+    <the-header />
 
     <v-main>
       <keep-alive :include="keepAliveList">
         <router-view />
       </keep-alive>
-      <Errors />
+      <errors />
     </v-main>
   </v-app>
 </template>
 
-<script setup>
+<script>
 import Errors from "@/components/Errors";
 import { TheHeader } from "@/components/Layout";
-import { computed, ref, watch } from "vue";
-import { useStore } from "vuex";
 
-const store = useStore();
-const keepAliveList = ref([]);
-
-const isAuthenticated = computed(() => store.getters.isAuthenticated);
-
-watch(isAuthenticated, newValue => {
-  if (newValue) {
-    keepAliveList.value.push("Products");
-  } else {
-    keepAliveList.value = [];
-  }
-});
+export default {
+  name: "App",
+  components: {
+    Errors,
+    TheHeader
+  },
+  data() {
+    return {
+      keepAliveList: []
+    };
+  },
+  computed: {
+    isAuthenticated() {
+      return this.$store.getters.isAuthenticated;
+    }
+  },
+  watch: {
+    // eslint-disable-next-line no-unused-vars
+    isAuthenticated(newValue, _) {
+      if (newValue) {
+        this.keepAliveList.push("Products");
+      } else {
+        this.keepAliveList = [];
+      }
+    },
+  },
+};
 </script>
 
 <style lang="scss">
-
 html {
   overflow-y: auto;
 }

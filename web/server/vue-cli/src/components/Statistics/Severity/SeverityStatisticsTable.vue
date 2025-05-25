@@ -77,6 +77,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 $class-name: ".severity-statistics > ::v-deep .v-data-table__wrapper";
 $unreviewed_col: 2;
 $colspan: 0;

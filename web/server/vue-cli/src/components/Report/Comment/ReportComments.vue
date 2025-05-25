@@ -130,13 +130,14 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 $width: 48px;
 
-::v-deep .v-timeline-item__divider {
+:deep(.v-timeline-item__divider) {
   min-width: $width;
 }
 
-.v-timeline--dense ::v-deep .v-timeline-item__body {
+.v-timeline--dense :deep(.v-timeline-item__body) {
   max-width: calc(100% - #{$width});
 }
 

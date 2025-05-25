@@ -198,7 +198,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-::v-deep .v-input--selection-controls__input {
+
+:deep(.v-input--selection-controls__input) {
   margin: 0;
 }
 </style>

@@ -132,6 +132,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$class-name: ".component-statistics > ::v-deep .v-data-table__wrapper";
+
 @import "@/components/Statistics/style.scss";
+
+$class-name: ".component-statistics > ::v-deep .v-data-table__wrapper";
 </style>

@@ -1,225 +1,239 @@
 <template>
-  <v-container fluid>
-    <v-row>
-      <v-col>
-        <v-card flat>
-          <v-card-title class="justify-center">
-            Component statistics
+  <component-severity-statistics-table
+    :items="statistics"
+    :loading="loading"
+    :filters="statisticsFilters"
+    :total-columns="totalColumns"
+  >
+    <template v-slot:header.reports.count="{ header }">
+      <detection-status-icon
+        :status="DetectionStatus.UNRESOLVED"
+        :size="16"
+        left
+      />
+      {{ header.text }}
+    </template>
 
-            <tooltip-help-icon>
-              This table shows component statistics per severity
-              levels.<br><br>
+    <template v-slot:header.critical.count="{ header }">
+      <severity-icon :status="Severity.CRITICAL" :size="16" />
+      {{ header.text }}
+    </template>
 
-              Each row can be expanded which will show a checker statistics
-              for the actual component.<br><br>
+    <template v-slot:header.high.count="{ header }">
+      <severity-icon :status="Severity.HIGH" :size="16" />
+      {{ header.text }}
+    </template>
 
-              The following filters don't affect these values:
-              <ul>
-                <li><b>Severity</b> filter.</li>
-                <li><b>Source component</b> filter.</li>
-              </ul>
-            </tooltip-help-icon>
-          </v-card-title>
-          <component-severity-statistics-table
-            :items="statistics"
-            :loading="loading"
-            :filters="statisticsFilters"
-            :total-columns="totalColumns"
-          >
-            <template
-              v-for="item in [
-                ['critical', Severity.CRITICAL],
-                ['high', Severity.HIGH],
-                ['medium', Severity.MEDIUM],
-                ['low', Severity.LOW],
-                ['style', Severity.STYLE],
-                ['unspecified', Severity.UNSPECIFIED],
-              ]"
-              v-slot:[`header.${item[0]}.count`]="{ header }"
-            >
-              <span :key="item[0]">
-                <severity-icon :status="item[1]" :size="16" />
-                {{ header.text }}
-              </span>
-            </template>
+    <template v-slot:header.medium.count="{ header }">
+      <severity-icon :status="Severity.MEDIUM" :size="16" />
+      {{ header.text }}
+    </template>
 
-            <template
-              v-for="i in [
-                ['critical', Severity.CRITICAL],
-                ['high', Severity.HIGH],
-                ['medium', Severity.MEDIUM],
-                ['low', Severity.LOW],
-                ['style', Severity.STYLE],
-                ['unspecified', Severity.UNSPECIFIED],
-              ]"
-              v-slot:[`item.${i[0]}.count`]="{ item }"
-            >
-              <span :key="i[0]">
-                <router-link
-                  v-if="item[i[0]].count"
-                  :to="{ name: 'reports', query: {
-                    ...$router.currentRoute.query,
-                    ...(item.$queryParams || {}),
-                    'source-component': item.component,
-                    'severity': severityFromCodeToString(i[1])
-                  }}"
-                >
-                  {{ item[i[0]].count }}
-                </router-link>
+    <template v-slot:header.low.count="{ header }">
+      <severity-icon :status="Severity.LOW" :size="16" />
+      {{ header.text }}
+    </template>
 
-                <report-diff-count
-                  :num-of-new-reports="item[i[0]].new"
-                  :num-of-resolved-reports="item[i[0]].resolved"
-                  :extra-query-params="{
-                    'source-component': item.component,
-                    'severity': severityFromCodeToString(i[1])
-                  }"
-                />
-              </span>
-            </template>
+    <template v-slot:header.style.count="{ header }">
+      <severity-icon :status="Severity.STYLE" :size="16" />
+      {{ header.text }}
+    </template>
 
-            <template v-slot:header.reports.count="{ header }">
-              <detection-status-icon
-                :status="DetectionStatus.UNRESOLVED"
-                :size="16"
-                left
-              />
-              {{ header.text }}
-            </template>
-          </component-severity-statistics-table>
-        </v-card>
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col>
-        <v-card flat>
-          <v-card-title class="justify-center">
-            Report severities
+    <template v-slot:header.unspecified.count="{ header }">
+      <severity-icon :status="Severity.UNSPECIFIED" :size="16" />
+      {{ header.text }}
+    </template>
 
-            <tooltip-help-icon>
-              This pie chart shows the checker severity distribution in the
-              product.<br><br>
+    <template v-slot:item.critical.count="{ item }">
+      <span>
+        <router-link
+          v-if="item.critical.count"
+          :to="{
+            name: 'reports',
+            query: {
+              ...$router.currentRoute.query,
+              ...(item.$queryParams || {}),
+              'source-component': item.component,
+              severity: severityFromCodeToString(Severity.CRITICAL)
+            }
+          }"
+        >
+          {{ item.critical.count }}
+        </router-link>
+        <report-diff-count
+          :num-of-new-reports="item.critical.new"
+          :num-of-resolved-reports="item.critical.resolved"
+          :extra-query-params="{
+            'source-component': item.component,
+            severity: severityFromCodeToString(Severity.CRITICAL)
+          }"
+        />
+      </span>
+    </template>
 
-              The following filters don't affect these values:
-              <ul>
-                <li><b>Severity</b> filter.</li>
-                <li><b>Source component</b> filter.</li>
-              </ul>
-            </tooltip-help-icon>
-          </v-card-title>
+    <template v-slot:item.high.count="{ item }">
+      <span>
+        <router-link
+          v-if="item.high.count"
+          :to="{
+            name: 'reports',
+            query: {
+              ...$router.currentRoute.query,
+              ...(item.$queryParams || {}),
+              'source-component': item.component,
+              severity: severityFromCodeToString(Severity.HIGH)
+            }
+          }"
+        >
+          {{ item.high.count }}
+        </router-link>
+        <report-diff-count
+          :num-of-new-reports="item.high.new"
+          :num-of-resolved-reports="item.high.resolved"
+          :extra-query-params="{
+            'source-component': item.component,
+            severity: severityFromCodeToString(Severity.HIGH)
+          }"
+        />
+      </span>
+    </template>
 
-          <v-row justify="center">
-            <v-overlay
-              :value="loading"
-              :absolute="true"
-              :opacity="0.2"
-            >
-              <v-progress-circular
-                indeterminate
-                size="64"
-              />
-            </v-overlay>
-          </v-row>
+    <template v-slot:item.medium.count="{ item }">
+      <span>
+        <router-link
+          v-if="item.medium.count"
+          :to="{
+            name: 'reports',
+            query: {
+              ...$router.currentRoute.query,
+              ...(item.$queryParams || {}),
+              'source-component': item.component,
+              severity: severityFromCodeToString(Severity.MEDIUM)
+            }
+          }"
+        >
+          {{ item.medium.count }}
+        </router-link>
+        <report-diff-count
+          :num-of-new-reports="item.medium.new"
+          :num-of-resolved-reports="item.medium.resolved"
+          :extra-query-params="{
+            'source-component': item.component,
+            severity: severityFromCodeToString(Severity.MEDIUM)
+          }"
+        />
+      </span>
+    </template>
 
-          <component-severity-statistics-chart
-            :loading="loading"
-            :statistics="statistics"
-          />
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
+    <template v-slot:item.low.count="{ item }">
+      <span>
+        <router-link
+          v-if="item.low.count"
+          :to="{
+            name: 'reports',
+            query: {
+              ...$router.currentRoute.query,
+              ...(item.$queryParams || {}),
+              'source-component': item.component,
+              severity: severityFromCodeToString(Severity.LOW)
+            }
+          }"
+        >
+          {{ item.low.count }}
+        </router-link>
+        <report-diff-count
+          :num-of-new-reports="item.low.new"
+          :num-of-resolved-reports="item.low.resolved"
+          :extra-query-params="{
+            'source-component': item.component,
+            severity: severityFromCodeToString(Severity.LOW)
+          }"
+        />
+      </span>
+    </template>
+
+    <template v-slot:item.style.count="{ item }">
+      <span>
+        <router-link
+          v-if="item.style.count"
+          :to="{
+            name: 'reports',
+            query: {
+              ...$router.currentRoute.query,
+              ...(item.$queryParams || {}),
+              'source-component': item.component,
+              severity: severityFromCodeToString(Severity.STYLE)
+            }
+          }"
+        >
+          {{ item.style.count }}
+        </router-link>
+        <report-diff-count
+          :num-of-new-reports="item.style.new"
+          :num-of-resolved-reports="item.style.resolved"
+          :extra-query-params="{
+            'source-component': item.component,
+            severity: severityFromCodeToString(Severity.STYLE)
+          }"
+        />
+      </span>
+    </template>
+
+    <template v-slot:item.unspecified.count="{ item }">
+      <span>
+        <router-link
+          v-if="item.unspecified.count"
+          :to="{
+            name: 'reports',
+            query: {
+              ...$router.currentRoute.query,
+              ...(item.$queryParams || {}),
+              'source-component': item.component,
+              severity: severityFromCodeToString(Severity.UNSPECIFIED)
+            }
+          }"
+        >
+          {{ item.unspecified.count }}
+        </router-link>
+        <report-diff-count
+          :num-of-new-reports="item.unspecified.new"
+          :num-of-resolved-reports="item.unspecified.resolved"
+          :extra-query-params="{
+            'source-component': item.component,
+            severity: severityFromCodeToString(Severity.UNSPECIFIED)
+          }"
+        />
+      </span>
+    </template>
+  </component-severity-statistics-table>
 </template>
 
 <script>
-import { ccService, handleThriftError } from "@cc-api";
-import {
-  DetectionStatus,
-  ReportFilter,
-  Severity
-} from "@cc/report-server-types";
-import { SeverityMixin } from "@/mixins";
-import { DetectionStatusIcon, SeverityIcon } from "@/components/Icons";
-import TooltipHelpIcon from "@/components/TooltipHelpIcon";
-import {
-  ComponentStatistics,
-  ReportDiffCount,
-  initDiffField
-} from "@/components/Statistics";
-
-import ComponentSeverityStatisticsChart from
-  "./ComponentSeverityStatisticsChart";
-import ComponentSeverityStatisticsTable from
-  "./ComponentSeverityStatisticsTable";
+import ComponentSeverityStatisticsTable 
+  from "./ComponentSeverityStatisticsTable.vue";
+import DetectionStatusIcon from "@/components/DetectionStatusIcon.vue";
+import SeverityIcon from "@/components/SeverityIcon.vue";
+import ReportDiffCount from "@/components/ReportDiffCount.vue";
+import Severity from "@/util/severity-util";
 
 export default {
   name: "ComponentSeverityStatistics",
   components: {
-    ComponentSeverityStatisticsChart,
     ComponentSeverityStatisticsTable,
     DetectionStatusIcon,
-    ReportDiffCount,
     SeverityIcon,
-    TooltipHelpIcon
+    ReportDiffCount
   },
-  mixins: [ ComponentStatistics, SeverityMixin ],
-  data() {
-    const fieldsToUpdate = [ "critical", "high", "medium", "low", "style",
-      "unspecified", "reports" ];
-
-    return {
-      DetectionStatus,
-      Severity,
-      totalColumns: fieldsToUpdate,
-      fieldsToUpdate: fieldsToUpdate
-    };
+  props: {
+    statistics: Array,
+    loading: Boolean,
+    statisticsFilters: Object,
+    totalColumns: Number
   },
   methods: {
-    getComponentStatistics(component, runIds, reportFilter, cmpData) {
-      const filter = new ReportFilter(reportFilter);
-      filter["severity"] = null;
-      filter["componentNames"] = [ component.name ];
-
-      return new Promise(resolve =>
-        ccService.getClient().getSeverityCounts(runIds, filter, cmpData,
-          handleThriftError(res => resolve(res))));
-    },
-
-    initStatistics(components) {
-      this.statistics = components.map(component => ({
-        component   : component.name,
-        value       : component.value || component.description,
-        reports     : initDiffField(undefined),
-        critical    : initDiffField(undefined),
-        high        : initDiffField(undefined),
-        medium      : initDiffField(undefined),
-        low         : initDiffField(undefined),
-        style       : initDiffField(undefined),
-        unspecified : initDiffField(undefined)
-      }));
-    },
-
-    async getStatistics(component, runIds, reportFilter, cmpData) {
-      const res = await this.getComponentStatistics(component, runIds,
-        reportFilter, cmpData);
-
-      const reports = Object.keys(res).reduce((acc, curr) => {
-        acc += res[curr].toNumber();
-        return acc;
-      }, 0);
-
-      return {
-        component   : component.name,
-        value       : component.value || component.description,
-        reports     : initDiffField(reports),
-        critical    : initDiffField(res[Severity.CRITICAL]),
-        high        : initDiffField(res[Severity.HIGH]),
-        medium      : initDiffField(res[Severity.MEDIUM]),
-        low         : initDiffField(res[Severity.LOW]),
-        style       : initDiffField(res[Severity.STYLE]),
-        unspecified : initDiffField(res[Severity.UNSPECIFIED])
-      };
-    },
+    severityFromCodeToString(code) {
+      return Severity.toString(code);
+    }
   }
 };
 </script>

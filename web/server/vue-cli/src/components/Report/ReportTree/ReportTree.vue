@@ -285,11 +285,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.v-treeview--dense ::v-deep .v-treeview-node__root {
+
+.v-treeview--dense :deep(.v-treeview-node__root) {
   min-height: 25px;
 }
 
-::v-deep .v-treeview-node__level {
+:deep(.v-treeview-node__level) {
   width: 18px;
 }
 </style>

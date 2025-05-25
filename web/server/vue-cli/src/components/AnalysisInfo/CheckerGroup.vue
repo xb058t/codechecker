@@ -120,6 +120,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 .analysis-info .checker-group-name {
   font-family: monospace;
   font-size: 112.5%;

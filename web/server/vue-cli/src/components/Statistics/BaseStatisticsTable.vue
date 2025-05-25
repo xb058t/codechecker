@@ -726,11 +726,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-::v-deep table {
+
+:deep(table) {
   border: thin solid rgba(0, 0, 0, 0.12);
 }
 
-::v-deep a {
+:deep(a) {
   text-decoration: none;
 
   &:not(.severity):hover {

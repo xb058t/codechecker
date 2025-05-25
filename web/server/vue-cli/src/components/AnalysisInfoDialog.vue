@@ -30,31 +30,23 @@
           />
         </v-container>
 
-        <div
-          v-if="postProcessedAnalysisInfoReady"
-        >
+        <div v-if="postProcessedAnalysisInfoReady">
           <div
             v-if="analysisInfo.checkerInfoAvailability ===
               CheckerInfoAvailability.Available"
           >
-            <v-container class="checker-statuses pa-0 pt-1">
-              <v-expansion-panels
-                multiple
-                hover
-              >
+          <v-container
+            class="checker-statuses pa-0 pt-1"
+          >
+              <v-expansion-panels multiple hover>
                 <v-expansion-panel
                   v-for="analyzer in analysisInfo.analyzers"
                   :key="analyzer"
                   class="analyzer-checkers-panel"
                   :data-analyzer-name="analyzer"
                 >
-                  <v-expansion-panel-header
-                    class="pa-0 px-1"
-                  >
-                    <v-row
-                      no-gutters
-                      align="center"
-                    >
+                  <v-expansion-panel-header class="pa-0 px-1">
+                    <v-row no-gutters align="center">
                       <v-col
                         cols="auto"
                         class="pa-1 analyzer-name primary--text"
@@ -64,17 +56,23 @@
                       <v-col cols="auto">
                         <count-chips
                           class="pl-2"
-                          :num-good="analysisInfo.checkerGroupCounts[analyzer]
-                            [GroupKeys.AnalyzerTotal]
-                            [CountKeys.Enabled]"
-                          :num-bad="analysisInfo.checkerGroupCounts[analyzer]
-                            [GroupKeys.AnalyzerTotal]
-                            [CountKeys.Disabled]"
-                          :num-total="analysisInfo.checkerGroupCounts[analyzer]
-                            [GroupKeys.AnalyzerTotal]
-                            [CountKeys.Total]"
+                          :num-good="getNum(
+                            analyzer,
+                            GroupKeys.AnalyzerTotal,
+                            CountKeys.Enabled
+                          )"
+                          :num-bad="getNum(
+                            analyzer,
+                            GroupKeys.AnalyzerTotal,
+                            CountKeys.Disabled
+                          )"
+                          :num-total="getNum(
+                            analyzer,
+                            GroupKeys.AnalyzerTotal,
+                            CountKeys.Total
+                          )"
                           :good-text="'Number of checkers enabled (executed)'"
-                          :bad-text="'Number of checkers disabled' +
+                          :bad-text="'Number of checkers disabled ' +
                             '(not executed)'"
                           :total-text="'Number of checkers available'"
                           :simplify-showing-if-all="true"
@@ -86,35 +84,27 @@
                     </v-row>
                   </v-expansion-panel-header>
 
-                  <v-expansion-panel-content
-                    class="pa-1"
-                  >
-                    <template
-                      v-for="(checkers, group) in
-                        analysisInfo.checkersGroupedAndSorted[analyzer]"
-                    >
-                      <checker-group
-                        v-if="group !== GroupKeys.NoGroup"
-                        :key="group"
-                        :group="group"
-                        :checkers="checkers"
-                        :counts="
-                          analysisInfo.checkerGroupCounts[analyzer][group]"
-                      />
-                      <checker-rows
-                        v-else
-                        :key="group"
-                        :checkers="checkers"
-                      />
-                    </template>
+                  <v-expansion-panel-content class="pa-1">
+                    <checker-group
+                    v-for="([group, checkers]) 
+                      in getGroupedCheckersWithGroups(analyzer)"
+                    :key="`group-${analyzer}-${group}`"
+                    :group="group"
+                    :checkers="checkers"
+                    :counts="getCounts(analyzer, group)"
+                  />
+
+                  <checker-rows
+                    v-for="entry in getGroupedCheckersNoGroup(analyzer)"
+                    :key="`nogroup-${analyzer}-${entry[0]}`"
+                    :checkers="entry[1]"
+                  />
                   </v-expansion-panel-content>
                 </v-expansion-panel>
               </v-expansion-panels>
             </v-container>
           </div>
-          <div
-            v-else
-          >
+          <div v-else>
             <v-alert
               icon="mdi-alert"
               class="checker-status-unavailable mt-2"
@@ -131,36 +121,33 @@
                 which was not created natively by
                 <span class="top-level-command">CodeChecker analyze</span>.
                 Using the
-                <span
-                  class="top-level-command font-italic"
-                >report-converter</span>
+                <span class="top-level-command font-italic">
+                  report-converter
+                </span>
                 on the results of third-party analysers can cause this, as it
                 prevents CodeChecker from knowing about the analysis
                 configuration.
               </span>
               <span
                 v-else-if="analysisInfo.checkerInfoAvailability ===
-                  CheckerInfoAvailability.
-                    RunHistoryStoredWithOldVersionPre_v6_24"
+                  CheckerInfoAvailability.OldVersion"
               >
                 The list of checkers executed during the analysis is only
                 available from CodeChecker version
                 <span class="version font-weight-bold">6.24</span>.<br>
                 The analysis was executed using an older,
-                <span class="version">{{
-                  analysisInfo.codeCheckerVersion
-                }}</span>
+                <span class="version">
+                  {{ analysisInfo.codeCheckerVersion }}
+                </span>
                 client, and it was also likely stored when the server ran this
                 older version.
               </span>
               <span
                 v-else-if="analysisInfo.checkerInfoAvailability ===
-                  CheckerInfoAvailability.
-                    ReportIdToAnalysisInfoIdQueryNontrivialOverAPI"
+                  CheckerInfoAvailability.ReportQueryNontrivial"
               >
                 The list of checkers executed during the analysis that produced
-                this <span class="font-italic">Report</span> is not
-                available!<br>
+                this <span class="font-italic">Report</span> is not available!
               </span>
             </v-alert>
           </div>
@@ -196,7 +183,7 @@ export default {
     value: { type: Boolean, default: false },
     runId: { type: Object, default: () => null },
     runHistoryId: { type: Object, default: () => null },
-    reportId: { type: Object, default: () => null },
+    reportId: { type: Object, default: () => null }
   },
 
   data() {
@@ -204,35 +191,25 @@ export default {
       postProcessedAnalysisInfoReady: false,
       analysisInfo: null,
       highlightedCmds: [],
-      enabledCheckerRgx: new RegExp("^(--enable|-e[= ]*)", "i"),
-      disabledCheckerRgx: new RegExp("^(--disable|-d[= ]*)", "i"),
+      enabledCheckerRgx: new RegExp("^(--enable|-e[ = ]*)", "i"),
+      disabledCheckerRgx: new RegExp("^(--disable|-d[ = ]*)", "i")
     };
   },
 
   computed: {
     dialog: {
-      get() {
-        return this.value;
-      },
-      set(val) {
-        this.$emit("update:value", val);
-      }
+      get() { return this.value; },
+      set(val) { this.$emit("update:value", val); }
     },
     CheckerInfoAvailability() { return CheckerInfoAvailability; },
     CountKeys() { return CountKeys; },
-    GroupKeys() { return GroupKeys; },
+    GroupKeys() { return GroupKeys; }
   },
 
   watch: {
-    runId() {
-      this.getAnalysisInfo();
-    },
-    runHistoryId() {
-      this.getAnalysisInfo();
-    },
-    reportId() {
-      this.getAnalysisInfo();
-    }
+    runId() { this.getAnalysisInfo(); },
+    runHistoryId() { this.getAnalysisInfo(); },
+    reportId() { this.getAnalysisInfo(); }
   },
 
   mounted() {
@@ -241,44 +218,62 @@ export default {
 
   methods: {
     highlightOptions(cmd) {
-      return cmd.split(" ").map(param => {
-        if (!param.startsWith("-")) {
-          return param;
-        }
+      return cmd
+        .split(" ")
+        .map(param => {
+          if (!param.startsWith("-")) return param;
+          const classNames = [ "param" ];
+          if (this.enabledCheckerRgx.test(param)) {
+            classNames.push("enabled-checkers");
+          } else if (this.disabledCheckerRgx.test(param)) {
+            classNames.push("disabled-checkers");
+          } else if (param.startsWith("--ctu")) {
+            classNames.push("ctu");
+          } else if (param.startsWith("--stats")) {
+            classNames.push("statistics");
+          }
+          return `<span class="${classNames.join(" ")}">${param}</span>`;
+        })
+        .join(" ")
+        .replace(/(?:\r\n|\r|\n)/g, "<br>");
+    },
 
-        const classNames = [ "param" ];
-        if (this.enabledCheckerRgx.test(param)) {
-          classNames.push("enabled-checkers");
-        } else if (this.disabledCheckerRgx.test(param)) {
-          classNames.push("disabled-checkers");
-        } else if (param.startsWith("--ctu")) {
-          classNames.push("ctu");
-        } else if (param.startsWith("--stats")) {
-          classNames.push("statistics");
-        }
+    getGroupedCheckers(analyzer) {
+      return this.analysisInfo.checkersGroupedAndSorted[analyzer] || {};
+    },
 
-        return `<span class="${classNames.join(" ")}">${param}</span>`;
-      }).join(" ").replace(/(?:\r\n|\r|\n)/g, "<br>");
+    getCounts(analyzer, group) {
+      return this.analysisInfo.checkerGroupCounts[analyzer]?.[group] || {};
+    },
+
+    getNum(analyzer, groupKey, countKey) {
+      const group = this.analysisInfo.checkerGroupCounts[analyzer];
+      return group?.[groupKey]?.[countKey] || 0;
     },
 
     async getAnalysisInfo() {
-      if (
-        !this.dialog ||
-        (!this.runId && !this.runHistoryId && !this.reportId)
-      ) {
-        return;
-      }
+      if (!this.dialog ||
+        (!this.runId && !this.runHistoryId && !this.reportId)) return;
+
       this.postProcessedAnalysisInfoReady = false;
       this.analysisInfo = null;
 
-      var analysisInfo = await this.loadAnalysisInfo(
-        this.runId, this.runHistoryId, this.reportId);
+      const analysisInfo = await this.loadAnalysisInfo(
+        this.runId,
+        this.runHistoryId,
+        this.reportId
+      );
       decideNegativeCheckerStatusAvailability(
-        analysisInfo, this.runId, this.runHistoryId, this.reportId);
+        analysisInfo,
+        this.runId,
+        this.runHistoryId,
+        this.reportId
+      );
       this.highlightedCmds = analysisInfo.cmds.map(cmd =>
-        this.highlightOptions(cmd));
-      analysisInfo.groupAndCountCheckers();
+        this.highlightOptions(cmd)
+      );
 
+      analysisInfo.groupAndCountCheckers();
       this.analysisInfo = analysisInfo;
       this.postProcessedAnalysisInfoReady = true;
     }
@@ -287,7 +282,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-::v-deep .analysis-info {
+
+:deep(.analysis-info) {
   .analyze-command {
     border: 1px solid grey;
     padding: 4px;
@@ -307,7 +303,8 @@ export default {
       background-color: rgba(142, 0, 0, 0.15);
     }
 
-    .ctu, .statistics {
+    .ctu,
+    .statistics {
       background-color: rgba(0, 0, 142, 0.15);
     }
   }
@@ -317,7 +314,8 @@ export default {
     font-weight: bold;
   }
 
-  .version, .top-level-command {
+  .version,
+  .top-level-command {
     font-family: monospace;
     font-size: smaller;
   }

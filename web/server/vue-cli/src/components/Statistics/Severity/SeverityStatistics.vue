@@ -95,7 +95,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-::v-deep .severity {
+
+:deep(.severity) {
   text-decoration: none;
 }
 </style>

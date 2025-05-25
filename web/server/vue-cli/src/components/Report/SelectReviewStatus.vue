@@ -246,11 +246,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-::v-deep .v-select__selections input {
+
+:deep(.v-select__selections input) {
   display: none;
 }
 
-::v-deep .v-select.v-text-field--outlined {
+:deep(.v-select.v-text-field--outlined) {
   .theme--light.v-label {
     background-color: #fff;
   }

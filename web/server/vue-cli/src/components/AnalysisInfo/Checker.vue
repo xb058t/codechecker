@@ -39,6 +39,7 @@ export default {
 };
 </script>
 <style lang="scss" scoped>
+
 .analysis-info {
   .checker-name {
     font-family: monospace;

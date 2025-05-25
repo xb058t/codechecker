@@ -926,6 +926,7 @@ export default {
 </style>
 
 <style lang="scss" scoped>
+
 #editor-wrapper {
   border: 1px solid #d8dbe0;
 
@@ -955,11 +956,11 @@ export default {
     font-size: initial;
     line-height: initial;
 
-    ::v-deep .CodeMirror-code > div:hover {
+    :deep(.CodeMirror-code > div:hover) {
       background-color: lighten(grey, 42%);
     }
 
-    &.blame ::v-deep .CodeMirror {
+    &.blame :deep(.CodeMirror) {
       line-height: 21px;
 
       .CodeMirror-gutter-wrapper {
@@ -969,32 +970,32 @@ export default {
       }
     }
 
-    ::v-deep .cm-matchhighlight:not(.cm-searching) {
+    :deep(.cm-matchhighlight:not(.cm-searching)) {
       background-color: lightgreen;
     }
 
-    ::v-deep .CodeMirror-selection-highlight-scrollbar {
+    :deep(.CodeMirror-selection-highlight-scrollbar) {
       background-color: green;
     }
   }
 }
 
-::v-deep .checker-step {
+:deep(.checker-step) {
   background-color: #eeb;
 }
 
-::v-deep .blame-gutter {
+:deep(.blame-gutter) {
   width: 400px;
   background-color: #f7f7f7;
 }
 
-::v-deep .report-step-msg.current {
+:deep(.report-step-msg.current) {
   border: 2px dashed var(--v-primary-base) !important;
   opacity: 1;
   font-weight: bold;
 }
 
-::v-deep .report-step-msg {
+:deep(.report-step-msg) {
   opacity: 0.7;
   font-weight: lighter;
 }

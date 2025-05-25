@@ -131,6 +131,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 .filter-item-title {
   direction: rtl;
   text-align: left;

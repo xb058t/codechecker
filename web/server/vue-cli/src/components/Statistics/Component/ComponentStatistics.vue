@@ -222,7 +222,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-::v-deep .v-data-table__expanded__content .v-card {
-  padding: 10px;
+
+:deep(.v-data-table__wrapper) {
+  padding: 8px;
 }
 </style>

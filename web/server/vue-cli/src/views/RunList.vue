@@ -551,7 +551,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.v-data-table ::v-deep tbody tr.v-data-table__expanded__content {
+
+.v-data-table :deep(tbody tr.v-data-table__expanded__content) {
   box-shadow: none;
 }
 </style>

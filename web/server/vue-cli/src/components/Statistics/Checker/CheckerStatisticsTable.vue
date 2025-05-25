@@ -79,6 +79,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 $class-name: ".checker-statistics > ::v-deep .v-data-table__wrapper";
 @import "@/components/Statistics/style.scss";
 </style>

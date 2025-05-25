@@ -362,6 +362,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 .report-hash {
   text-decoration: none;
 
@@ -370,7 +371,7 @@ export default {
   }
 }
 
-::v-deep .v-toolbar__content {
+:deep(.v-toolbar__content) {
   padding: 0;
 }
 </style>

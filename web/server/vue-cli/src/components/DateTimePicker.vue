@@ -184,7 +184,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-::v-deep .v-picker.v-card {
+
+:deep(.v-picker.v-card) {
   box-shadow: none;
 
   & > .v-picker__title {

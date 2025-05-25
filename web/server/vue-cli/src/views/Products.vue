@@ -371,6 +371,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 .v-list-item__subtitle {
   white-space: normal;
 }
@@ -379,7 +380,7 @@ export default {
   display: inline-block;
   max-width: 150px;
 
-  ::v-deep .v-chip__content {
+  :deep(.v-chip__content) {
     line-height: 32px;
     display: inline-block !important;
     white-space: nowrap;
