@@ -205,7 +205,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 .v-timeline-item.run-history:hover {
   background-color: #eeeeee;
 }

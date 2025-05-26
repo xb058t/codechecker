@@ -78,7 +78,6 @@ export default {
   }
 };
 </script>
-
 <style lang="scss" scoped>
 
 .v-list-item.v-list-item--dense {

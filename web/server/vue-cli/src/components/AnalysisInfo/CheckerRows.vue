@@ -24,7 +24,6 @@ export default {
   }
 };
 </script>
-
 <style lang="scss" scoped>
 
 .analysis-info .analysis-info-checker-rows-in-columns {

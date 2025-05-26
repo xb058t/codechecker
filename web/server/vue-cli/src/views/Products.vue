@@ -371,7 +371,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 .v-list-item__subtitle {
   white-space: normal;
 }

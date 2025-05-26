@@ -85,7 +85,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 #btn-container > button {
   margin: 0 !important;
   margin-top: 10px !important;

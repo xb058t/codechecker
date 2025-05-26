@@ -184,7 +184,6 @@ export default {
   }
 };
 </script>
-
 <style lang="scss" scoped>
 
 :deep(.v-date-picker-table) {

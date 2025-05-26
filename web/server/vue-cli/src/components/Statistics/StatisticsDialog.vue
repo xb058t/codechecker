@@ -149,7 +149,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 .checker-rows-in-columns {
   columns: 32em auto;
 }

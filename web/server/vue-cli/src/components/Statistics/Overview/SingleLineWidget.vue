@@ -64,7 +64,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 .v-card {
   border: thin solid rgba(0, 0, 0, 0.12);
 }

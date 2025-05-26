@@ -70,7 +70,6 @@ export default {
   }
 };
 </script>
-
 <style lang="scss" scoped>
 
 :deep(.v-toolbar > .v-toolbar__content) {

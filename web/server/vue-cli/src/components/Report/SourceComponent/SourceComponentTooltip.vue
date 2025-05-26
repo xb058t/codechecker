@@ -36,7 +36,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 .v-tooltip__content {
   padding: 0px;
 

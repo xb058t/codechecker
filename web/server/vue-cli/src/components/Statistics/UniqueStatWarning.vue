@@ -50,7 +50,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 .link:hover {
   cursor: pointer;
   text-decoration: underline;

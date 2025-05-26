@@ -193,7 +193,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 .splitpanes.default-theme {
   .splitpanes__pane {
     background-color: inherit;

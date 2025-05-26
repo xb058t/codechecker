@@ -362,7 +362,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 .report-hash {
   text-decoration: none;
 

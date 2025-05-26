@@ -118,7 +118,6 @@ export default {
   }
 };
 </script>
-
 <style lang="scss" scoped>
 
 .analysis-info .checker-group-name {

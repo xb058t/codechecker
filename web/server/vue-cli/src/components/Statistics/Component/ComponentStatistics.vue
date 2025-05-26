@@ -222,7 +222,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 :deep(.v-data-table__wrapper) {
   padding: 8px;
 }

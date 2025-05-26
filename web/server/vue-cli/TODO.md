@@ -17,12 +17,12 @@ This document outlines the first steps for migrating from vue2 to vue3.
 
 - [x] Audit current Vue-related dependencies
 - [x] Identify incompatible packages:
-- `vue@2.7.16` - needs `vue@3`
-- `vue-router@3` - needs `vue-router@4`
-- `vuex@3` - optional migration to `vuex@4`
-- `vuetify@2` - major update to `vuetify@3`
-- `vue/test-utils@1.x` - needs `@vue/test-tuils@2`
-- `vue/vue2-jest` - incompatible, needs replacing with `vue-jest@next`
+  - `vue@2.7.16` -> needs `vue@3`
+  - `vue-router@3` -> needs `vue-router@4`
+  - `vuex@3` -> optional migration to `vuex@4`
+  - `vuetify@2` -> major update to `vuetify@3`
+  - `vue/test-utils@1.x` -> needs `@vue/test-utils@2`
+  - `vue/vue2-jest` -> incompatible, needs `vue-jest@next`
 
 ---
 
@@ -42,11 +42,15 @@ This document outlines the first steps for migrating from vue2 to vue3.
 
 ## Install Vue 3 Stack
 
-- [ ] Install new core dependencies:
+- [x] Install new core dependencies:
     ```
     npm install vue@3 vue-router@4 vuex@4
     npm install -D @vue/compiler-sfc vue-loader@^17
     ```
+
+- [x] Fix SCSS errors by removing redundant @use "@/variables.scss"
+- [x] Replace deprecated `::v-deep` with `:deep(...)`
+- [x] Fix `template v-for` key warning (`key` moved to direct child)
 
 ---
 
@@ -78,10 +82,12 @@ This document outlines the first steps for migrating from vue2 to vue3.
     npm run serve
     ```
 
+---
+
 ## Gradual Migration
 
-- [ ] Migrate pages and components one by one
-- [ ] Refactor old Vue 2 APIs
+- [x] Migrate multiple `.vue` components (cleanup plan, statistics)
+- [x] Refactor deprecated syntax (v-for, scoped style, deep selectors)
 - [ ] Replace options API with composition API (where applicable)
 - [ ] Replace Vuetify 2 with Vuetify 3 (requires rewrite)
 

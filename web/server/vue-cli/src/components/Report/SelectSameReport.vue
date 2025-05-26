@@ -83,7 +83,6 @@ export default {
   }
 };
 </script>
-
 <style lang="scss" scoped>
 
 :deep(.v-select__selections input) {

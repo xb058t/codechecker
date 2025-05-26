@@ -280,7 +280,6 @@ export default {
   }
 };
 </script>
-
 <style lang="scss" scoped>
 
 :deep(.analysis-info) {
