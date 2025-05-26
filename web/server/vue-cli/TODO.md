@@ -128,3 +128,6 @@ Updated Webpack config to work with vue-loader@^17
 
 ## Other cleanUp's
 Cleaned up ESLint issues that were breaking on Vue3 rules
+
+## webpack.common.js
+new VuetifyLoaderPlugin() - not supported by vue3
