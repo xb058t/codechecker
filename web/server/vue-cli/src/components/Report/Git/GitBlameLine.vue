@@ -138,8 +138,8 @@ export default {
   }
 };
 </script>
-<style lang="scss" scoped>
 
+<style lang="scss" scoped>
 .blame-line-full {
   border-top: 1px solid #bdbaba;
 }

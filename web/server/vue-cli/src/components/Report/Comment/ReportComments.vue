@@ -128,8 +128,8 @@ export default {
   }
 };
 </script>
-<style lang="scss" scoped>
 
+<style lang="scss" scoped>
 $width: 48px;
 
 :deep(.v-timeline-item__divider) {

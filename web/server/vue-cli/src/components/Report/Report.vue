@@ -924,8 +924,8 @@ export default {
   background-color: red;
 }
 </style>
-<style lang="scss" scoped>
 
+<style lang="scss" scoped>
 #editor-wrapper {
   border: 1px solid #d8dbe0;
 

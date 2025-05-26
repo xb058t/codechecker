@@ -244,8 +244,8 @@ export default {
   }
 };
 </script>
-<style lang="scss" scoped>
 
+<style lang="scss" scoped>
 :deep(.v-select__selections input) {
   display: none;
 }

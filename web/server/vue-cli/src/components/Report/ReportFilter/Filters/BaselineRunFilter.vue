@@ -438,8 +438,8 @@ export default {
   }
 };
 </script>
-<style lang="scss" scoped>
 
+<style lang="scss" scoped>
 .v-tab {
   &.tags:not(.v-tab--disabled) {
     font-weight: bold;

@@ -280,8 +280,8 @@ export default {
   }
 };
 </script>
-<style lang="scss" scoped>
 
+<style lang="scss" scoped>
 :deep(.analysis-info) {
   .analyze-command {
     border: 1px solid grey;

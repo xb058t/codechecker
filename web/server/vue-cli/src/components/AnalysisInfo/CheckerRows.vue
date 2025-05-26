@@ -24,8 +24,8 @@ export default {
   }
 };
 </script>
-<style lang="scss" scoped>
 
+<style lang="scss" scoped>
 .analysis-info .analysis-info-checker-rows-in-columns {
   columns: 32em auto;
 }
