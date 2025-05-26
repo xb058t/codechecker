@@ -99,3 +99,32 @@ This document outlines the first steps for migrating from vue2 to vue3.
 - [ ] Run full CodeChecker UI smoke test
 
 ---
+
+## NOTES
+Done for 26.05.2025
+
+## Core vue stack upgrades:
+Vue 2 -> Vue 3
+vue-router@3 -> vue-router@4
+vuex@3 -> vuex@4
+vuetify@2 -> vuetify@3
+Replaced vue/vue2-jest with vue-jest@next and @vue/test-utils@2
+
+## Syntax cleanUp
+replaced all ::v-deep(vue2) to :deep(.)(vue3)
+replaced all v-for usage inside <template> with key on actual child elements(<template> itself no longer receives :key in Vue3)
+
+## main.js changes
+Replaced new Vue({...}) with Vue 3's createApp(...)
+Updated Vuetify plugin registration to match new API
+Simplified imports and removed core-js, regenerator-runtime for now.
+Later core-js, regenerator-runtime will be added back for browsers support.
+
+## Style fixes
+Updated a lot of .vue components:
+Updated <style scoped> sections to use new :deep() combinators
+Removed redundant wrappers, especially <template v-for>
+Updated Webpack config to work with vue-loader@^17
+
+## Other cleanUp's
+Cleaned up ESLint issues that were breaking on Vue3 rules
