@@ -35,9 +35,9 @@
             v-if="analysisInfo.checkerInfoAvailability ===
               CheckerInfoAvailability.Available"
           >
-          <v-container
-            class="checker-statuses pa-0 pt-1"
-          >
+            <v-container
+              class="checker-statuses pa-0 pt-1"
+            >
               <v-expansion-panels multiple hover>
                 <v-expansion-panel
                   v-for="analyzer in analysisInfo.analyzers"
@@ -86,19 +86,19 @@
 
                   <v-expansion-panel-content class="pa-1">
                     <checker-group
-                    v-for="([group, checkers]) 
-                      in getGroupedCheckersWithGroups(analyzer)"
-                    :key="`group-${analyzer}-${group}`"
-                    :group="group"
-                    :checkers="checkers"
-                    :counts="getCounts(analyzer, group)"
-                  />
+                      v-for="([group, checkers]) 
+                        in getGroupedCheckersWithGroups(analyzer)"
+                      :key="`group-${analyzer}-${group}`"
+                      :group="group"
+                      :checkers="checkers"
+                      :counts="getCounts(analyzer, group)"
+                    />
 
-                  <checker-rows
-                    v-for="entry in getGroupedCheckersNoGroup(analyzer)"
-                    :key="`nogroup-${analyzer}-${entry[0]}`"
-                    :checkers="entry[1]"
-                  />
+                    <checker-rows
+                      v-for="entry in getGroupedCheckersNoGroup(analyzer)"
+                      :key="`nogroup-${analyzer}-${entry[0]}`"
+                      :checkers="entry[1]"
+                    />
                   </v-expansion-panel-content>
                 </v-expansion-panel>
               </v-expansion-panels>
@@ -281,7 +281,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 :deep(.analysis-info) {
   .analyze-command {
     border: 1px solid grey;

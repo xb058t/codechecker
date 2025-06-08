@@ -40,6 +40,7 @@
                 @on:filter="filterReviewStatusRules"
               />
             </v-col>
+
             <v-col class="pa-0" align="right" cols="auto">
               <v-btn
                 color="error"
@@ -91,22 +92,23 @@
       <router-link
         class="report-hash"
         :title="item.reportHash"
-        :to="{ name: 'reports', query: {
-          ...$router.currentRoute.query,
-          'report-hash': item.reportHash,
-          'review-status': reviewStatusFromCodeToString(item.status)
-        }}"
+        :to="{
+          name: 'reports',
+          query: {
+            ...$router.currentRoute.query,
+            'report-hash': item.reportHash,
+            'review-status': reviewStatusFromCodeToString(
+              item.status
+            )
+          }
+        }"
       >
         {{ item.reportHash | truncate(10) }}
       </router-link>
     </template>
 
     <template #item.date="{ item }">
-      <v-chip
-        class="ma-2"
-        color="primary"
-        outlined
-      >
+      <v-chip class="ma-2" color="primary" outlined>
         <v-icon left>
           mdi-calendar-range
         </v-icon>
@@ -114,7 +116,7 @@
       </v-chip>
     </template>
 
-    <template v-slot:item.actions="{ item }">
+    <template #item.actions="{ item }">
       <v-btn
         class="remove-btn"
         icon
@@ -139,8 +141,7 @@
 </template>
 
 <script>
-import Vue from "vue";
-
+import mitt from "mitt";
 import { ccService, handleThriftError } from "@cc-api";
 import {
   Order,
@@ -167,24 +168,26 @@ export default {
   mixins: [ ReviewStatusMixin ],
   data() {
     const itemsPerPageOptions = [ 25, 50, 100 ];
-
-    const page = parseInt(this.$router.currentRoute.query["page"]) || 1;
-    const itemsPerPage =
-      parseInt(this.$router.currentRoute.query["items-per-page"]) ||
-      itemsPerPageOptions[0];
+    const page = parseInt(
+      this.$router.currentRoute.query["page"]
+    ) || 1;
+    const itemsPerPage = parseInt(
+      this.$router.currentRoute.query["items-per-page"]
+    ) || itemsPerPageOptions[0];
     const sortBy = this.$router.currentRoute.query["sort-by"];
     const sortDesc = this.$router.currentRoute.query["sort-desc"];
 
     return {
       initialized: false,
       pagination: {
-        page: page,
-        itemsPerPage: itemsPerPage,
+        page,
+        itemsPerPage,
         sortBy: sortBy ? [ sortBy ] : [],
-        sortDesc: sortDesc !== undefined ? [ sortDesc === "true" ] : []
+        sortDesc: sortDesc !== undefined
+          ? [ sortDesc === "true" ] : []
       },
       footerProps: {
-        itemsPerPageOptions: itemsPerPageOptions
+        itemsPerPageOptions
       },
       totalItems: 0,
       rules: [],
@@ -194,71 +197,53 @@ export default {
       editDialog: false,
       removeDialog: false,
       removeFilteredRuleDialog: false,
-      bus: new Vue(),
+      bus: mitt(),
       headers: [
-        {
-          text: "Report hash",
-          value: "reportHash",
-          sortable: true
-        },
-        {
-          text: "Review status",
-          value: "status",
-          sortable: true
-        },
-        {
-          text: "Message",
-          value: "message",
-          sortable: false
-        },
-        {
-          text: "Author",
-          value: "author",
-          sortable: true
-        },
-        {
-          text: "Date",
-          value: "date",
-          sortable: true
-        },
+        { text: "Report hash", value: "reportHash", sortable: true },
+        { text: "Review status", value: "status", sortable: true },
+        { text: "Message", value: "message", sortable: false },
+        { text: "Author", value: "author", sortable: true },
+        { text: "Date", value: "date", sortable: true },
         {
           text: "Number of associated reports",
           value: "associatedReportCount",
           sortable: true,
           align: "center"
         },
-        {
-          text: "Actions",
-          value: "actions",
-          sortable: false
-        },
+        { text: "Actions", value: "actions", sortable: false }
       ]
     };
   },
-
   watch: {
     pagination: {
       handler() {
         if (!this.initialized) return;
 
-        const defaultItemsPerPage = this.footerProps.itemsPerPageOptions[0];
+        const defaultItems =
+          this.footerProps.itemsPerPageOptions[0];
+
         const itemsPerPage =
-          this.pagination.itemsPerPage === defaultItemsPerPage
+          this.pagination.itemsPerPage === defaultItems
             ? undefined
             : this.pagination.itemsPerPage;
 
         const page = this.pagination.page === 1
-          ? undefined : this.pagination.page;
+          ? undefined
+          : this.pagination.page;
+
         const sortBy = this.pagination.sortBy.length
-          ? this.pagination.sortBy[0] : undefined;
+          ? this.pagination.sortBy[0]
+          : undefined;
+
         const sortDesc = this.pagination.sortDesc.length
-          ? this.pagination.sortDesc[0] : undefined;
+          ? this.pagination.sortDesc[0]
+          : undefined;
 
         this.updateUrl({
           "items-per-page": itemsPerPage,
-          "page": page,
+          page,
           "sort-by": sortBy,
-          "sort-desc": sortDesc,
+          "sort-desc": sortDesc
         });
 
         this.fetchReviewStatusRules();
@@ -266,7 +251,6 @@ export default {
       deep: true
     }
   },
-
   methods: {
     updateUrl(params) {
       this.$router.replace({
@@ -276,9 +260,9 @@ export default {
         }
       }).catch(() => {});
     },
-
     getSortMode() {
-      let type = null;
+      let type;
+
       switch (this.pagination.sortBy[0]) {
       case "reportHash":
         type = ReviewStatusRuleSortType.REPORT_HASH;
@@ -297,62 +281,64 @@ export default {
       }
 
       const ord = this.pagination.sortDesc[0] === false
-        ? Order.ASC : Order.DESC;
+        ? Order.ASC
+        : Order.DESC;
 
-      return new ReviewStatusRuleSortMode({ type: type, ord: ord });
+      return new ReviewStatusRuleSortMode({ type, ord });
     },
-
     filterReviewStatusRules(filter) {
       this.filter = filter;
       this.fetchReviewStatusRules();
     },
-
     fetchReviewStatusRules() {
       this.loading = true;
 
-      // Get total item count.
-      ccService.getClient().getReviewStatusRulesCount(this.filter,
+      ccService.getClient().getReviewStatusRulesCount(
+        this.filter,
         handleThriftError(totalItems => {
           this.totalItems = totalItems.toNumber();
-        }));
+        })
+      );
 
       const sortMode = this.getSortMode();
       const limit = this.pagination.itemsPerPage;
       const offset = limit * (this.pagination.page - 1);
 
       return new Promise(resolve => {
-        ccService.getClient().getReviewStatusRules(this.filter, sortMode,
-          limit, offset, handleThriftError(rules => {
+        ccService.getClient().getReviewStatusRules(
+          this.filter,
+          sortMode,
+          limit,
+          offset,
+          handleThriftError(rules => {
             this.rules = rules.map(r => ({
               reportHash: r.reportHash,
               status: r.reviewData.status,
               message: r.reviewData.comment,
               author: r.reviewData.author,
               date: r.reviewData.date,
-              associatedReportCount: r.associatedReportCount.toNumber()
+              associatedReportCount:
+                r.associatedReportCount.toNumber()
             }));
+
             this.loading = false;
             this.initialized = true;
-
             resolve(this.rules);
-          }));
+          })
+        );
       });
     },
-
     clearAllFilters() {
-      this.bus.$emit("clear");
+      this.bus.emit("clear");
     },
-
     editReviewStatusRule(rule) {
       this.selected = rule;
       this.editDialog = true;
     },
-
     newReviewStatusRule() {
       this.selected = null;
       this.editDialog = true;
     },
-
     removeReviewStatusRule(rule) {
       this.selected = rule;
       this.removeDialog = true;
@@ -361,7 +347,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .report-hash {
   text-decoration: none;
 

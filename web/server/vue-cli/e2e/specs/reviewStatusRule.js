@@ -81,7 +81,7 @@ module.exports = {
       .assert.urlContains(`report-hash=${reportHash}`)
       .assert.urlContains(`author=${author}`)
       .assert.urlContains("no-associated-reports=on")
-      .assert.urlContains("review-status=False%20positive")
+      .assert.urlContains("review-status=False%20positive");
   },
 
   "edit review status rule" (browser) {
@@ -112,7 +112,9 @@ module.exports = {
     reviewStatusRulePage.expect.element("@overlay").to.be.visible.before(5000);
     reviewStatusRulePage.expect.section(dialog).to.be.visible.before(5000);
 
-    reviewStatusRulePage.section.removeReviewStatusRuleDialog.pause(100).click("@confirmBtn");
+    reviewStatusRulePage.section.removeReviewStatusRuleDialog
+      .pause(100)
+      .click("@confirmBtn");
 
     reviewStatusRulePage.expect.section(dialog).to.not.be.present.before(5000);
     reviewStatusRulePage.expect.element("@overlay")
@@ -199,4 +201,4 @@ module.exports = {
     reviewStatusRulePage.waitForElementVisible(
       "@removeReviewStatusRuleBtn");
   },
-}
+};

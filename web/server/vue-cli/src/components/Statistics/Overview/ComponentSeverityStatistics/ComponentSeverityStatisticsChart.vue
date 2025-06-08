@@ -1,5 +1,5 @@
 <script>
-import { Pie, mixins } from "vue-chartjs";
+// import { Pie, mixins } from "vue-chartjs";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { Severity } from "@cc/report-server-types";
 import { SeverityMixin } from "@/mixins";

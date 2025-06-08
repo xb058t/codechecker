@@ -70,8 +70,7 @@ export default {
   }
 };
 </script>
-<style lang="scss" scoped>
-
+<style lang="scss">
 :deep(.v-toolbar > .v-toolbar__content) {
   padding: 0;
 }

@@ -40,7 +40,7 @@
     "splitpanes": "^2.3.8",
     "vue": "^3.5.14",
     "vue-router": "^4.5.1",
-    "vuetify": "^3.8.6",
+    "vuetify": "^3.8.8",
     "vuex": "^4.1.0"
   },
   "devDependencies": {
@@ -71,8 +71,8 @@
     "raw-loader": "^4.0.2",
     "regenerator-runtime": "^0.13.9",
     "rimraf": "^3.0.2",
-    "sass": "^1.89.0",
-    "sass-loader": "^12.4.0",
+    "sass": "^1.89.1",
+    "sass-loader": "^13.3.3",
     "selenium-server": "^3.141.59",
     "start-server-and-test": "^2.0.3",
     "util": "^0.12.4",

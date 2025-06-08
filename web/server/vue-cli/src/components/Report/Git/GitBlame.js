@@ -1,19 +1,17 @@
-import Vue from "vue";
 import { parse } from "date-fns";
 
 import { ccService, handleThriftError } from "@cc-api";
 
 import GitBlameLine from "./GitBlameLine";
-const GitBlameLineClass = Vue.extend(GitBlameLine);
+import { createApp } from "vue";
 
 function getCommitColor(commit, minDate, maxDate) {
   const currTime = commit.committedDateTime;
   const commitHeat = (currTime - minDate) / (maxDate - minDate);
 
-  // Convert to rgb.
   const [ r, g, b ] = [
     Math.round(128 + (1 - commitHeat) * 127),
-    Math.round(128 +      commitHeat  * 127),
+    Math.round(128 + commitHeat * 127),
     128
   ];
 
@@ -102,26 +100,20 @@ export default {
           if (commit)
             lastCommitColor = commit.color;
 
-          // If the marker already exists we can skip adding it again.
           if (this.gutterMarkers[i])
             continue;
 
-          const widget = new GitBlameLineClass({
-            propsData: {
-              number: i + 1,
-              commit,
-              color: lastCommitColor,
-              remoteUrl: this.sourceFile.remoteUrl,
-              trackingBranch: this.sourceFile.trackingBranch
-            }
+          const vm = createApp(GitBlameLine, {
+            number: i + 1,
+            commit,
+            color: lastCommitColor,
+            remoteUrl: this.sourceFile.remoteUrl,
+            trackingBranch: this.sourceFile.trackingBranch
           });
 
-          // This is needed otherwise it will throw an error.
-          widget.$vuetify = this.$vuetify;
-
-          widget.$mount();
-
-          this.editor.setGutterMarker(i, this.gutterID, widget.$el);
+          const el = document.createElement("div");
+          vm.mount(el);
+          this.editor.setGutterMarker(i, this.gutterID, el);
           this.gutterMarkers[i] = true;
         }
       });
@@ -155,15 +147,13 @@ export default {
       });
 
       if (minDate === maxDate)
-        --minDate; // This makes one-commit files green.
+        --minDate;
 
       this.commits = getCommits(this.blameInfo, minDate, maxDate);
 
-      // Initalize the gutter markers.
       const { from, to } = this.editor.getViewport();
       this.setGutterMarker(from, to);
 
-      // Add gutter markers on viewport change event.
       this.editor.on("viewportChange", this.onViewportChange);
 
       this.$router.replace({

@@ -68,7 +68,7 @@ module.exports = {
       reportPage.section.sourceComponentFilter,
       reportPage.section.checkerMessageFilter
     ].forEach(section => {
-      section.api.elements("@selectedItems", ({result}) => {
+      section.api.elements("@selectedItems", ({ result }) => {
         browser.assert.ok(result.value.length === 0);
       });
     });
@@ -80,13 +80,13 @@ module.exports = {
     const colIdx = 9;
 
     // Sort reports in ascending order by bug path length.
-    reportPage.sortReports(colIdx, (data) => {
+    reportPage.sortReports(colIdx, data => {
       return data.every((e, ind, a) =>
         !ind || parseInt(a[ind - 1][colIdx - 1]) <= parseInt(e[colIdx - 1]));
     });
 
     // Sort reports in descending order by bug path length.
-    reportPage.sortReports(colIdx, (data) => {
+    reportPage.sortReports(colIdx, data => {
       return data.every((e, ind, a) =>
         !ind || parseInt(a[ind - 1][colIdx - 1]) >= parseInt(e[colIdx - 1]));
     });
@@ -96,9 +96,9 @@ module.exports = {
     const reportPage = browser.page.report();
 
     reportPage
-        .click("@uniqueReports")
-        .waitForProgressBarNotPresent()
-        .click("@expandBtn");
+      .click("@uniqueReports")
+      .waitForProgressBarNotPresent()
+      .click("@expandBtn");
 
     reportPage.expect.section("@expanded").to.be.visible.before(5000);
   },
@@ -118,7 +118,7 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 2);
     });
 
@@ -126,13 +126,13 @@ module.exports = {
 
     reportPage.waitForProgressBarNotPresent();
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 1);
     });
 
     section.click("@clearBtn");
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 0);
     });
   },
@@ -313,7 +313,7 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 1);
     });
   },
@@ -331,7 +331,7 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 1);
     });
   },
@@ -349,7 +349,7 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 1);
     });
   },
@@ -368,7 +368,7 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 3);
     });
   },
@@ -388,7 +388,7 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 4);
     });
   },
@@ -405,7 +405,7 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 1);
     });
   },
@@ -424,7 +424,7 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 3);
     });
   },
@@ -444,22 +444,25 @@ module.exports = {
     dialogSection.pause(500);
 
     // Add a new component.
-    dialogSection.waitForElementVisible("@newComponentBtn")
+    dialogSection.waitForElementVisible("@newComponentBtn");
     dialogSection.click("@newComponentBtn");
     reportPage.expect.section(newComponentDialog).to.be.visible.before(5000);
 
     reportPage.expect.element("@overlay").to.be.visible.before(5000);
 
-    let [ name, value, description ] = [ "e2e", "+*", "Test" ];
+    const name = "e2e";
+    let value = "+*";
+    let description = "Test";
+
     newComponentDialog
       .clearAndSetValue("@name", name, newComponentDialog)
       .clearAndSetValue("@value", value, newComponentDialog)
       .clearAndSetValue("@description", description, newComponentDialog)
       .click("@saveBtn");
 
-    reportPage.expect.element("@overlay").to.not.be.present.before(5000);
+    reportPage.expect.element("overlay").to.not.be.present.before(5000);
 
-    dialogSection.api.elements("@tableRows", (elements) => {
+    dialogSection.api.elements("@tableRows", elements => {
       browser.assert.ok(elements.result.value.length === 1);
     });
 
@@ -468,7 +471,9 @@ module.exports = {
     reportPage.expect.section(newComponentDialog).to.be.visible.before(5000);
     reportPage.expect.element("@overlay").to.be.visible.before(5000);
 
-    [ value, description ] = [ "+*\n-dummy", "Renamed" ];
+    value = "+*\n-dummy";
+    description = "Renamed";
+
     newComponentDialog
       .clearAndSetValue("@value", value, newComponentDialog)
       .clearAndSetValue("@description", description, newComponentDialog)
@@ -476,7 +481,7 @@ module.exports = {
 
     reportPage.expect.element("@overlay").to.not.be.present.before(5000);
 
-    dialogSection.api.elements("@tableRows", (elements) => {
+    dialogSection.api.elements("@tableRows", elements => {
       browser.assert.ok(elements.result.value.length === 1);
     });
 
@@ -491,14 +496,14 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 1);
     });
 
     // Clear the filter.
     section.click("@clearBtn");
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 0);
     });
 
@@ -543,12 +548,14 @@ module.exports = {
     dialogSection.pause(500);
 
     // Add a new cleanup plan.
-    dialogSection.waitForElementVisible("@newCleanupPlanBtn")
+    dialogSection.waitForElementVisible("@newCleanupPlanBtn");
     dialogSection.click("@newCleanupPlanBtn");
     reportPage.expect.section(newCleanupPlanDialog).to.be.visible.before(5000);
     reportPage.expect.element("@overlay").to.be.visible.before(5000);
 
-    let [ name, description ] = [ "e2e", "Test" ];
+    const name = "e2e";
+    let description = "Test";
+
     newCleanupPlanDialog
       .clearAndSetValue("@name", name, newCleanupPlanDialog)
       .clearAndSetValue("@description", description, newCleanupPlanDialog)
@@ -556,7 +563,7 @@ module.exports = {
 
     reportPage.expect.element("@overlay").to.not.be.present.before(5000);
 
-    dialogSection.api.elements("@tableRows", (elements) => {
+    dialogSection.api.elements("@tableRows", elements => {
       browser.assert.ok(elements.result.value.length === 1);
     });
 
@@ -565,14 +572,14 @@ module.exports = {
     reportPage.expect.section(newCleanupPlanDialog).to.be.visible.before(5000);
     reportPage.expect.element("@overlay").to.be.visible.before(5000);
 
-    [ description ] = [ "Renamed" ];
+    description = "Renamed";
     newCleanupPlanDialog
       .clearAndSetValue("@description", description, newCleanupPlanDialog)
       .click("@saveBtn");
 
     reportPage.expect.element("@overlay").to.not.be.present.before(5000);
 
-    dialogSection.api.elements("@tableRows", (elements) => {
+    dialogSection.api.elements("@tableRows", elements => {
       browser.assert.ok(elements.result.value.length === 1);
     });
 
@@ -605,19 +612,19 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 1);
     });
 
-    reportPage.getTableRows("@tableRows", (data) => {
+    reportPage.getTableRows("@tableRows", data => {
       browser.assert.ok(
-        [...new Set(data.map(r => r[2]))].filter(d => d).length === 1);
+        [ ...new Set(data.map(r => r[2])) ].filter(d => d).length === 1);
     });
 
     // Clear the filter.
     section.click("@clearBtn");
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 0);
     });
 
@@ -644,7 +651,7 @@ module.exports = {
     reportPage.expect.section(dialogSection).to.be.visible.before(5000);
     dialogSection.pause(500);
 
-    dialogSection.api.elements("@tableRows", (elements) => {
+    dialogSection.api.elements("@tableRows", elements => {
       browser.assert.ok(elements.result.value.length === 1);
     });
 
@@ -656,7 +663,7 @@ module.exports = {
       .click("@reopenCleanupPlanBtn")
       .waitForElementNotPresent("@reopenCleanupPlanBtn")
       .click("@openCleanupPlansTab")
-      .waitForElementVisible("@closeCleanupPlanBtn")
+      .waitForElementVisible("@closeCleanupPlanBtn");
 
     // Remove the cleanup plan.
     dialogSection.waitForElementVisible("@removeCleanupPlanBtn");
@@ -687,7 +694,7 @@ module.exports = {
 
     reportPage.expect.section("@settingsMenu").to.not.be.present.before(5000);
 
-    section.api.elements("@selectedItems", ({result}) => {
+    section.api.elements("@selectedItems", ({ result }) => {
       browser.assert.ok(result.value.length === 1);
     });
   },
@@ -803,4 +810,4 @@ module.exports = {
       .pause(500)
       .waitForElementNotPresent("@progressBar");
   },
-}
+};

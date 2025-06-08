@@ -6,9 +6,7 @@
     small
     fill-dot
   >
-    <v-card
-      class="elevation-2"
-    >
+    <v-card class="elevation-2">
       <v-list two-line>
         <v-list-item>
           <user-icon
@@ -21,9 +19,7 @@
             <v-list-item-title>
               {{ comment.author }}
             </v-list-item-title>
-            <v-list-item-subtitle
-              :title="comment.createdAt"
-            >
+            <v-list-item-subtitle :title="comment.createdAt">
               {{ createdAt }}
             </v-list-item-subtitle>
           </v-list-item-content>
@@ -33,7 +29,6 @@
                 :comment="comment"
                 :bus="bus"
               />
-
               <remove-comment-btn
                 :comment="comment"
                 :bus="bus"
@@ -43,16 +38,12 @@
         </v-list-item>
       </v-list>
       <!-- eslint-disable vue/no-v-html -->
-      <v-card-text
-        class="pt-0"
-        v-html="message"
-      />
+      <v-card-text class="pt-0" v-html="message" />
     </v-card>
   </v-timeline-item>
 </template>
 
 <script>
-import Vue from "vue";
 import { formatDistanceToNow, parse } from "date-fns";
 
 import { CommentData } from "@cc/report-server-types";
@@ -70,15 +61,18 @@ export default {
   },
   props: {
     comment: { type: CommentData, required: true },
-    bus: { type: Vue, required: true }
+    bus: { type: Object, required: true }
   },
   computed: {
     message() {
       return this.comment.message.replace(/(?:\r\n|\r|\n)/g, "<br>");
     },
     createdAt() {
-      const created = parse(this.comment.createdAt,
-        "yyyy-MM-dd HH:mm:ss.SSSSSS", new Date());
+      const created = parse(
+        this.comment.createdAt,
+        "yyyy-MM-dd HH:mm:ss.SSSSSS",
+        new Date()
+      );
       return formatDistanceToNow(created);
     }
   }

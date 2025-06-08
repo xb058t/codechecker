@@ -269,7 +269,8 @@
 </template>
 
 <script>
-import Vue from "vue";
+import mitt from "mitt";
+import { createApp } from "vue";
 
 import CodeMirror from "codemirror";
 import "codemirror/lib/codemirror.css";
@@ -317,8 +318,8 @@ import SelectSameReport from "./SelectSameReport";
 import { ReportInfoButton, ShowReportInfoDialog } from "./ReportInfo";
 
 import ReportStepMessage from "./ReportStepMessage";
-const ReportStepMessageClass = Vue.extend(ReportStepMessage);
 
+// eslint-disable-next-line vue/one-component-per-file
 export default {
   name: "Report",
   components: {
@@ -360,7 +361,7 @@ export default {
       showComments: false,
       commentCols: 3,
       loading: true,
-      bus: new Vue(),
+      bus: mitt(),
       annotation: null,
       selectedChecker: null,
       analysisInfoDialog: false,
@@ -741,20 +742,21 @@ export default {
       const marginLeft =
         this.editor.defaultCharWidth() * element.startCol + "px";
 
-      const widget = new ReportStepMessageClass({
-        propsData: {
-          ...props,
-          id: element.$id,
-          value: element.$message,
-          marginLeft: marginLeft,
-          report: this.report
-        }
+      // eslint-disable-next-line vue/one-component-per-file
+      const app = createApp(ReportStepMessage, {
+        ...props,
+        id: element.$id,
+        value: element.$message,
+        marginLeft: marginLeft,
+        report: this.report
       });
-      widget.$vuetify = this.$vuetify;
-      widget.$mount();
+      app.config.globalProperties.$vuetify = this.$vuetify;
+      const widget = app.mount(document.createElement("div"));
 
       this.lineWidgets.push(this.editor.addLineWidget(
-        element.startLine.toNumber() - 1, widget.$el));
+        element.startLine.toNumber() - 1,
+        widget.$el
+      ));
     },
 
     addEvents(events) {
@@ -925,7 +927,7 @@ export default {
 }
 </style>
 
-<style lang="scss" scoped>
+<style lang="scss">
 #editor-wrapper {
   border: 1px solid #d8dbe0;
 

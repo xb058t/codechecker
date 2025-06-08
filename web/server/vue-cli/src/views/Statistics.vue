@@ -15,9 +15,7 @@
     </pane>
     <pane>
       <div v-fill-height>
-        <v-tabs
-          v-model="tab"
-        >
+        <v-tabs v-model="tab">
           <v-tab
             v-for="t in tabs"
             :key="t.name"
@@ -46,7 +44,7 @@
 </template>
 
 <script>
-import Vue from "vue";
+import mitt from "mitt";
 import { Pane, Splitpanes } from "splitpanes";
 import { mapState } from "vuex";
 
@@ -56,6 +54,7 @@ import { FillHeight } from "@/directives";
 import { ReportFilter } from "@/components/Report/ReportFilter";
 
 const namespace = "statistics";
+const bus = mitt();
 
 export default {
   name: "Statistics",
@@ -102,7 +101,7 @@ export default {
         icon: "mdi-clipboard-text-outline",
         to: { name: "guideline-statistics" },
         showCompareTo: false
-      },
+      }
     ];
 
     return {
@@ -112,20 +111,14 @@ export default {
       showCompareTo: true,
       tab: null,
       tabs: tabs,
-      bus: new Vue(),
-
-      // Map the tab link names to boolean values. If the value of a key is
-      // true, it means that on the next tab change the tab needs to be
-      // updated.
+      bus,
       refreshTabs: tabs.reduce((map, tab) => {
         const resolve = this.$router.resolve(tab.to);
         map[resolve.route.name] = false;
-
         return map;
       }, {})
     };
   },
-
   computed: {
     ...mapState({
       runIds(state, getters) {
@@ -136,12 +129,7 @@ export default {
       }
     })
   },
-
   watch: {
-    /**
-     * Refresh the current statistics tab if the tab is marked as true in the
-     * refresh tab map.
-     */
     tab() {
       if (!this.tab) return;
 
@@ -159,7 +147,6 @@ export default {
       }
     }
   },
-
   methods: {
     refresh() {
       ccService.getClient().getRunResultCount(this.runIds,
@@ -174,19 +161,14 @@ export default {
 
       this.refreshCurrentTab();
     },
-
-    /**
-     * Refresh the current statistics tab.
-     */
     refreshCurrentTab() {
-      this.bus.$emit("refresh");
+      this.bus.emit("refresh");
 
       const resolve = this.$router.resolve(this.tab);
       this.refreshTabs[resolve.route.name] = false;
     },
-
     setRefreshFilterState(state) {
-      this.refreshFilterState=state;
+      this.refreshFilterState = state;
     }
   }
 };

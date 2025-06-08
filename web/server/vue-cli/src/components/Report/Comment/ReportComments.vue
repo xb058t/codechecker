@@ -28,20 +28,14 @@
     <v-container fluid class="px-0">
       <v-row class="ma-0">
         <v-col cols="auto">
-          <v-timeline
-            v-if="comments.length"
-            dense
-          >
-            <template
-              v-for="comment in comments"
-            >
+          <v-timeline v-if="comments.length" dense>
+            <template v-for="comment in comments">
               <user-comment
                 v-if="comment.kind === CommentKind.USER"
                 :key="comment.id.toString()"
                 :comment="comment"
                 :bus="bus"
               />
-
               <system-comment
                 v-if="comment.kind === CommentKind.SYSTEM"
                 :key="comment.id.toString()"
@@ -56,8 +50,7 @@
 </template>
 
 <script>
-import Vue from "vue";
-
+import mitt from "mitt";
 import { ccService, handleThriftError } from "@cc-api";
 import { CommentKind } from "@cc/report-server-types";
 
@@ -66,6 +59,8 @@ import NewComment from "./NewComment";
 import UserComment from "./UserComment";
 import RemoveCommentDialog from "./RemoveCommentDialog";
 import SystemComment from "./SystemComment";
+
+const bus = mitt();
 
 export default {
   name: "ReportComments",
@@ -79,7 +74,6 @@ export default {
   props: {
     report: { type: Object, default: () => null }
   },
-
   data() {
     return {
       CommentKind,
@@ -88,32 +82,29 @@ export default {
       editDialog: false,
       removeDialog: false,
       loading: false,
-      bus: new Vue()
+      bus
     };
   },
-
   watch: {
     report() {
       this.fetchComments();
     }
   },
-
   mounted() {
     this.fetchComments();
 
-    this.bus.$on("update:comments", this.fetchComments);
+    this.bus.on("update:comments", this.fetchComments);
 
-    this.bus.$on("update:comment", comment => {
+    this.bus.on("update:comment", comment => {
       this.selected = comment;
       this.editDialog = true;
     });
 
-    this.bus.$on("remove:comment", comment => {
+    this.bus.on("remove:comment", comment => {
       this.selected = comment;
       this.removeDialog = true;
     });
   },
-
   methods: {
     fetchComments() {
       if (!this.report) return;
@@ -129,7 +120,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 $width: 48px;
 
 :deep(.v-timeline-item__divider) {
@@ -141,6 +132,6 @@ $width: 48px;
 }
 
 .v-application--is-ltr .v-timeline--dense:not(.v-timeline--reverse):before {
-  left: calc((#{$width} / 2) - 1px)
+  left: calc((#{$width} / 2) - 1px);
 }
 </style>

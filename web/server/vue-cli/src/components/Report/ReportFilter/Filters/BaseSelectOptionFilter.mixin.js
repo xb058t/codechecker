@@ -1,4 +1,4 @@
-import Vue from "vue";
+import mitt from "mitt";
 import BaseFilterMixin from "./BaseFilter.mixin";
 
 export default {
@@ -9,14 +9,14 @@ export default {
     return {
       id: -1,
       selectedItems: [],
-      bus: new Vue(),
+      bus: mitt(),
       loading: false,
       defaultValues: null
     };
   },
 
   methods: {
-    async setSelectedItems(selectedItems, updateUrl=true) {
+    async setSelectedItems(selectedItems, updateUrl = true) {
       this.selectedItems = selectedItems;
       await this.updateReportFilter();
 
@@ -38,10 +38,10 @@ export default {
     },
 
     getUrlState() {
-      const state =
-        this.selectedItems.map(item => this.encodeValue(item.id));
-
-      return { [this.id]: state.length ? state : undefined };
+      const state = this.selectedItems.map(item =>
+        this.encodeValue(item.id)
+      );
+      return { [ this.id ]: state.length ? state : undefined };
     },
 
     getIconClass() {},
@@ -64,8 +64,8 @@ export default {
             icon: this.getIconClass(id)
           };
         });
-        this.setSelectedItems(selectedItems, false);
 
+        this.setSelectedItems(selectedItems, false);
         resolve();
       });
     },
@@ -85,7 +85,7 @@ export default {
     },
 
     async update() {
-      this.bus.$emit("update");
+      this.bus.emit("update");
 
       if (!this.selectedItems.length) return;
 
@@ -102,7 +102,9 @@ export default {
     },
 
     filterItems(value) {
-      return this.fetchItems({ query: value ? [ `${value}*` ] : null });
+      return this.fetchItems({
+        query: value ? [ `${value}*` ] : null
+      });
     },
 
     clear(updateUrl) {

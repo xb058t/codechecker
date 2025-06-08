@@ -1,6 +1,5 @@
-const { execFile, execFileSync, execSync, spawn, spawnSync } = require("child_process");
+const { execSync } = require("child_process");
 const path = require("path");
-const fs = require("fs");
 
 const host = process.env.HOST || "localhost";
 const port = process.env.PORT || 8002;
@@ -11,7 +10,6 @@ const REPORTS_DIR = path.join(CC_DIR, "reports");
 const PASSWORD_FILE = path.join(CC_DIR, "codechecker.passwords.json");
 const SESSION_FILE = path.join(CC_DIR, "codechecker.session.json");
 
-// List of products which will be added to the server.
 const PRODUCTS = [
   {
     endpoint: "e2e",
@@ -20,7 +18,6 @@ const PRODUCTS = [
   }
 ];
 
-// Runs which will be stored to the server.
 const RUNS = [
   {
     name: "macros",
@@ -35,7 +32,6 @@ const RUNS = [
     url: `http://${host}:${port}/e2e`,
     description: "This is my simple run."
   },
-  // We store this run so many times to test the run history load more feature.
   ...[ ...Array(10).keys() ].map(idx => ({
     name: "simple",
     output: path.join(REPORTS_DIR, "simple"),
@@ -68,20 +64,19 @@ function runCommand(cmd) {
     stdio: "inherit",
     env: {
       ...process.env,
-      "CC_PASS_FILE": PASSWORD_FILE,
-      "CC_SESSION_FILE": SESSION_FILE
+      CC_PASS_FILE: PASSWORD_FILE,
+      CC_SESSION_FILE: SESSION_FILE
     }
   });
 }
 
-async function login (username) {
+async function login(username) {
   const cmd = [
     "CodeChecker", "cmd", "login", username,
     "--url", url
   ].join(" ");
 
   console.log("Login command: ", cmd);
-
   runCommand(cmd);
 }
 
@@ -92,7 +87,6 @@ function logout() {
   ].join(" ");
 
   console.log("Logout command: ", cmd);
-
   runCommand(cmd);
 }
 
@@ -106,7 +100,6 @@ function addProduct({ endpoint, name, description }) {
   ].join(" ");
 
   console.log("Add product command: ", cmd);
-
   runCommand(cmd);
 }
 
@@ -118,29 +111,17 @@ function store({ name, output, tag, description, url }) {
     output
   ];
 
-  if (tag)
-    cmd = [ ...cmd, "--tag", `"${tag}"` ];
-
-  if (description)
-    cmd = [ ...cmd, "--description", `"${description}"` ];
+  if (tag) cmd.push("--tag", `"${tag}"`);
+  if (description) cmd.push("--description", `"${description}"`);
 
   cmd = cmd.join(" ");
-
   console.log("Store command: ", cmd);
-
   runCommand(cmd);
 }
 
 login("root");
 
-// Add initial products.
-PRODUCTS.forEach(args => {
-  addProduct(args);
-});
-
-// Store reports.
-RUNS.forEach(args => {
-  store(args);
-});
+PRODUCTS.forEach(addProduct);
+RUNS.forEach(store);
 
 logout();

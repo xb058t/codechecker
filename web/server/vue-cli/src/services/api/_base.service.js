@@ -1,4 +1,4 @@
-import Vue from "vue";
+import mitt from "mitt";
 import {
   TBufferedTransport,
   TJSONProtocol,
@@ -19,7 +19,7 @@ const port = parseInt(process.env.CC_SERVER_PORT, 10) ||
   parseInt(window.location.port, 10);
 const api = process.env.CC_API_VERSION;
 
-const eventHub = new Vue();
+const eventHub = mitt();
 
 class BaseService {
   constructor(serviceName, serviceClass) {
@@ -27,8 +27,7 @@ class BaseService {
     this._serviceClass = serviceClass;
     this._client = this.createClient();
 
-    // Event which can be used to update client on route changes.
-    eventHub.$on("update", endpoint => {
+    eventHub.on("update", endpoint => {
       this._client = this.createClient(endpoint);
     });
   }
@@ -46,19 +45,22 @@ class BaseService {
       https: window.location.protocol === "https:"
     });
 
-    // Override parameters of the request object.
     const getXmlHttpRequestObject = connection.getXmlHttpRequestObject;
     connection.getXmlHttpRequestObject = function () {
       const xreq = getXmlHttpRequestObject();
 
       xreq.addEventListener("readystatechange", function () {
-        if (this.readyState === 1) { // connection opened, headers not sent yet
-          xreq.setRequestHeader("Authorization",
-            "Bearer " + authService.getToken());
-        } else if (this.readyState === 4) { // request finished
+        if (this.readyState === 1) {
+          xreq.setRequestHeader(
+            "Authorization",
+            "Bearer " + authService.getToken()
+          );
+        } else if (this.readyState === 4) {
           if (this.status === 504) {
-            store.commit(ADD_ERROR,
-              `Error ${this.status}: ${this.statusText}`);
+            store.commit(
+              ADD_ERROR,
+              `Error ${this.status}: ${this.statusText}`
+            );
           } else if (this.status === 401) {
             store.commit(PURGE_AUTH);
           }
@@ -72,40 +74,31 @@ class BaseService {
   }
 }
 
-/**
- * This function will handle the errors of a Thrift API call. If the error
- * is a 401 error then it will redirect the user to the login page. Otherwise
- * it will add the error to the vuex store.
- * @callback [cb] - callback function which will be called on success.
- * @callback [onError] - callback function which will be called on
- * error. If it is not given the error will be added to the vuex store.
- */
 const handleThriftError = function (cb, onError) {
   return (err, ...args) => {
-    // Call the callback function with the rest of the arguments if it is given
-    // and there are no errors.
+    
     if (!err) {
       if (cb) cb.apply(this, args);
       return;
     }
 
-    // Handle 401 errors.
     if (err instanceof Error) {
       const msg = err.message;
       if (msg.indexOf("Error code 401:") !== -1) {
         store.commit(PURGE_AUTH);
-
-        router.push({
-          name: "login",
-          query: { "return_to": router.currentRoute.fullPath }
-        }).catch(() => { });
-
+        router
+          .push({
+            name: "login",
+            query: { return_to: router.currentRoute.fullPath }
+          })
+          .catch(() => {});
         if (onError) onError(err);
         return;
-      } else if (msg.search(/The product .* does not exist!/) > -1) {
-        return router.replace({
-          name: "404"
-        }).catch(() => { });
+      } else if (
+        msg.search(/The product .* does not exist!/) > -1
+      ) {
+        router.replace({ name: "404" }).catch(() => {});
+        return;
       }
     }
 
@@ -122,3 +115,4 @@ export {
   handleThriftError,
   BaseService
 };
+  

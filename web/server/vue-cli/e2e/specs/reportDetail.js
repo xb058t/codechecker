@@ -25,10 +25,10 @@ module.exports = {
 
   "show documentation" (browser) {
     const reportDetailPage = browser.page.reportDetail();
-    reportDetailPage.expect.element('@showDocumentationBtn')
+    reportDetailPage.expect.element("@showDocumentationBtn")
       .to.be.present.before(5000, false);
 
-    reportDetailPage.click('@showDocumentationBtn');
+    reportDetailPage.click("@showDocumentationBtn");
 
     browser.windowHandles(windowObj => {
       if (windowObj.value.length > 1) {
@@ -164,7 +164,7 @@ module.exports = {
 
     userCommentSection.expect.element("@message").text.to.equal(newMessage);
     systemCommentSection.expect.element("@message").text.to.contain(
-      `changed comment message from ${message} to ${newMessage}`)
+      `changed comment message from ${message} to ${newMessage}`);
 
     // Remove comment.
     userCommentSection.click("@removeBtn");
@@ -278,4 +278,4 @@ module.exports = {
 
     reportDetailPage.waitForProgressBarNotPresent();
   }
-}
+};

@@ -211,9 +211,9 @@
 <script>
 import ComponentSeverityStatisticsTable 
   from "./ComponentSeverityStatisticsTable.vue";
-import DetectionStatusIcon from "@/components/DetectionStatusIcon.vue";
-import SeverityIcon from "@/components/SeverityIcon.vue";
-import ReportDiffCount from "@/components/ReportDiffCount.vue";
+import DetectionStatusIcon from "@/components/Icons/DetectionStatusIcon.vue";
+import SeverityIcon from "@/components/Icons/SeverityIcon.vue";
+import ReportDiffCount from "@/components/Statistics/ReportDiffCount.vue";
 import Severity from "@/util/severity-util";
 
 export default {
@@ -225,11 +225,24 @@ export default {
     ReportDiffCount
   },
   props: {
-    statistics: Array,
-    loading: Boolean,
-    statisticsFilters: Object,
-    totalColumns: Number
+    statistics: {
+      type: Array,
+      default: () => []
+    },
+    loading: {
+      type: Boolean,
+      default: false
+    },
+    statisticsFilters: {
+      type: Object,
+      default: () => ({})
+    },
+    totalColumns: {
+      type: Number,
+      default: 0
+    }
   },
+  
   methods: {
     severityFromCodeToString(code) {
       return Severity.toString(code);

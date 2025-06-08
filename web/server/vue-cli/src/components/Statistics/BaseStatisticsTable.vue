@@ -725,7 +725,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 :deep(table) {
   border: thin solid rgba(0, 0, 0, 0.12);
 }

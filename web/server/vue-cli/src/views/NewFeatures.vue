@@ -2195,17 +2195,17 @@ analyzer:
             </template>
             <p>
               We added 2 new detection types:
-              <ul>
-                <li>
-                  <b>Off</b> - were reported by a checker that is switched off
-                  during the analysis.
-                </li>
-                <li>
-                  <b>Unavailable</b> - were reported by a checker that does not
-                  exists anymore because it was removed or renamed.
-                </li>
-              </ul>
             </p>
+            <ul>
+              <li>
+                <b>Off</b> - were reported by a checker that is switched off
+                during the analysis.
+              </li>
+              <li>
+                <b>Unavailable</b> - were reported by a checker that does not
+                exists anymore because it was removed or renamed.
+              </li>
+            </ul>
           </new-feature-item>
 
           <new-feature-item>
@@ -2484,17 +2484,17 @@ analyzer:
                 <p>
                   Creating an index.html file that lists the found reports
                   which links to the local html pages.
-                  <b>Examples:</b>
-                  <ul>
-                    <li>
-                      <code>CodeChecker parse ./reports -e html -o ./reports_html</code>
-                    </li>
-                  </ul>
-                  For more information
-                  <a href="https://github.com/Ericsson/codechecker/blob/master/docs/usage.md#step-3">
-                    see
-                  </a>.
                 </p>
+                <b>Examples:</b>
+                <ul>
+                  <li>
+                    <code>CodeChecker parse ./reports -e html -o ./reports_html</code>
+                  </li>
+                </ul>
+                For more information
+                <a href="https://github.com/Ericsson/codechecker/blob/master/docs/usage.md#step-3">
+                  see
+                </a>.
               </v-col>
               <v-col>
                 <img

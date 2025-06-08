@@ -1,25 +1,27 @@
 <template>
   <v-container fluid>
     <v-alert
-      v-model="success"
+      :model-value="success"
       dismissible
       color="success"
       border="left"
       elevation="2"
       colored-border
       icon="mdi-check"
+      @update:model-value="success = $event"
     >
       Permission changes saved successfully!
     </v-alert>
 
     <v-alert
-      v-model="error"
+      :model-value="error"
       dismissible
       color="error"
       border="left"
       elevation="2"
       colored-border
       icon="mdi-alert-outline"
+      @update:model-value="error = $event"
     >
       Some permission changes could not be saved!
     </v-alert>
@@ -32,10 +34,13 @@
           :bus="bus"
           :extra-params-json="extraParamsJSON"
           :is-group="false"
-          :success.sync="success"
-          :error.sync="error"
+          :success="success"
+          :error="error"
+          @update:success="success = $event"
+          @update:error="error = $event"
         />
       </v-col>
+
       <v-col>
         <product-group-permission
           :permissions="permissions"
@@ -43,8 +48,10 @@
           :bus="bus"
           :extra-params-json="extraParamsJSON"
           :is-group="true"
-          :success.sync="success"
-          :error.sync="error"
+          :success="success"
+          :error="error"
+          @update:success="success = $event"
+          @update:error="error = $event"
         />
       </v-col>
     </v-row>
@@ -64,9 +71,12 @@ export default {
   },
   mixins: [ PopulatePermissionsMixin ],
   props: {
-    bus: { type: Object, required: true },
+    bus: {
+      type: Object,
+      required: true
+    }
   },
-
+  emits: [ "update:success", "update:error" ],
   data() {
     return {
       scope: "SYSTEM",
@@ -75,7 +85,6 @@ export default {
       error: false
     };
   },
-
   mounted() {
     this.populatePermissions(this.scope, this.extraParamsJSON);
   }

@@ -284,7 +284,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .v-treeview--dense :deep(.v-treeview-node__root) {
   min-height: 25px;
 }

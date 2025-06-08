@@ -9,12 +9,12 @@ module.exports.command = function (selector, value, section) {
     // is visible before clicking it.
     .pause(100)
     .click(selector)
-    .getValue(selector, function (result) {
+    .getValue(selector, function (/* unused result */) {
       section.setValue(selector, [
         this.Keys.CONTROL,
         "a",
         this.Keys.DELETE,
-      ])
+      ]);
       section.setValue(selector, value);
     });
 };
