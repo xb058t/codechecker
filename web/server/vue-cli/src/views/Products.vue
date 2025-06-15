@@ -86,7 +86,7 @@
 
       <template #item.runCount="{ item }">
         <v-chip
-          :color="getRunCountColor(item.runCount)"
+          :color="getRunDataColor(item.runCount)"
           dark
         >
           {{ item.runCount }}
@@ -302,6 +302,7 @@ export default {
           }).sort(this.sortProducts);
 
           this.pagination.page = this.page;
+          console.log("[getProducts] raw response:", products);
           this.loading = false;
         }));
     },
@@ -359,7 +360,7 @@ export default {
       this.products = this.products.filter(p => p.id !== product.id);
     },
 
-    getRunCountColor(runCount) {
+    getRunDataColor(runCount) {
       if (runCount > 500) {
         return "red";
       } else if (runCount > 200) {

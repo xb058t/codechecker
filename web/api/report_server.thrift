@@ -573,7 +573,7 @@ service codeCheckerDBAccess {
 
   // Returns the number of available runs based on the run filter parameter.
   // PERMISSION: PRODUCT_VIEW
-  i64 getRunCount(1: RunFilter runFilter)
+  i64 getRunData(1: RunFilter runFilter)
                   throws (1: codechecker_api_shared.RequestFailed requestError),
 
   // Get check command for a run.

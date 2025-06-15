@@ -1584,7 +1584,7 @@ class ThriftRequestHandler:
 
     @exc_to_thrift_reqfail
     @timeit
-    def getRunCount(self, run_filter):
+    def getRunData(self, run_filter):
         self.__require_view()
 
         with DBSession(self._Session) as session:

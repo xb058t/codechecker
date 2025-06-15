@@ -182,7 +182,7 @@ export default {
       return {
         name: "reports",
         query: {
-          ...this.$router.currentRoute.query,
+          ...this.$route.query,
           "run": this.selectedBaselineRuns.length
             ? this.selectedBaselineRuns : undefined,
           "run-tag": this.selectedBaselineTags.length
@@ -243,19 +243,19 @@ export default {
     ]),
 
     initByUrl() {
-      const runName = this.$router.currentRoute.query["run"];
+      const runName = this.$route.query["run"];
       if (runName)
         this.setRunName(runName);
 
-      const runTag = this.$router.currentRoute.query["run-tag"];
+      const runTag = this.$route.query["run-tag"];
       if (runTag)
         this.setRunTag(runTag);
 
-      const storedAfter = this.$router.currentRoute.query["stored-after"];
+      const storedAfter = this.$route.query["stored-after"];
       if (storedAfter)
         this.setStoredAfter(new Date(storedAfter));
 
-      const storedBefore = this.$router.currentRoute.query["stored-before"];
+      const storedBefore = this.$route.query["stored-before"];
       if (storedBefore)
         this.setStoredBefore(new Date(storedBefore));
     },

@@ -78,7 +78,7 @@ export default {
     bus: { type: Object, required: true }
   },
   data() {
-    const queries = this.$router.currentRoute.query;
+    const queries = this.$route.query;
     const reportHash = queries["report-hash"];
     const noAssociatedReports =
       (queries["no-associated-reports"] && true) || false;

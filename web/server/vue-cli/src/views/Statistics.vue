@@ -19,9 +19,11 @@
           <v-tab
             v-for="t in tabs"
             :key="t.name"
-            :to="{ ...t.to, query: {
-              ...$router.currentRoute.query
-            }}"
+            :to="{
+              name: t.to.name,
+              params: { endpoint: $route.params.endpoint },
+              query: { ...$route.query }
+            }"
             exact
           >
             <v-icon class="mr-2">
@@ -114,7 +116,7 @@ export default {
       bus,
       refreshTabs: tabs.reduce((map, tab) => {
         const resolve = this.$router.resolve(tab.to);
-        map[resolve.route.name] = false;
+        map[resolve.name] = false;
         return map;
       }, {})
     };

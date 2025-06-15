@@ -26,12 +26,14 @@
           {{ product.displayedName }}
         </span>
 
-        <router-link
+        <span
+          class="clickable"
           v-else
-          :to="{ name: 'runs', params: { endpoint: product.endpoint } }"
+          @click="navigateToRuns"
         >
           {{ product.displayedName }}
-        </router-link>
+        </span>
+
 
         <span
           v-if="!product.accessible"

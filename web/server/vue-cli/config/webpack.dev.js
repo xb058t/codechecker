@@ -11,11 +11,8 @@ const CC_SERVICE_ENDPOINTS = [
   "ServerInfo"
 ];
 
-// Location of the Thrift API server.
-const CC_THRIFT_API_HOST =
-  process.env.CC_THRIFT_API_HOST || "http://localhost";
-const CC_THRIFT_API_PORT =
-  process.env.CC_THRIFT_API_PORT || 8001;
+const CC_THRIFT_API_HOST = process.env.CC_THRIFT_API_HOST || "http://localhost";
+const CC_THRIFT_API_PORT = process.env.CC_THRIFT_API_PORT || 8001;
 
 module.exports = merge(common, {
   mode: "development",
@@ -47,6 +44,11 @@ module.exports = merge(common, {
       ]
     },
     proxy: {
+      "/v6": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        secure: false
+      },
       "/v6.62": {
         target: "http://localhost:8001",
         changeOrigin: true,
@@ -56,15 +58,30 @@ module.exports = merge(common, {
         target: "http://localhost:8001",
         changeOrigin: true,
         secure: false
+      },
+      "/Configuration": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        secure: false
+      },
+      "/ServerInfo": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        secure: false
+      },
+      "/CodeCheckerService": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        secure: false
       }
     }
   },
   plugins: [
     new DefinePlugin({
-      "process.env":{
-        "process.env.CC_SERVER_HOST": JSON.stringify("localhost"),
-        "process.env.CC_SERVER_PORT": JSON.stringify("8001"),
-        "process.env.CC_API_VERSION": JSON.stringify("6.62")
+      "process.env": {
+        "CC_SERVER_HOST": JSON.stringify("localhost"),
+        "CC_SERVER_PORT": JSON.stringify("8001"),
+        "CC_API_VERSION": JSON.stringify("6.62")
       }
     })
   ]

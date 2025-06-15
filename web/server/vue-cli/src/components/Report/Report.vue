@@ -345,7 +345,7 @@ export default {
 
   data() {
     const enableBlameView =
-      this.$router.currentRoute.query["view"] === "blame";
+      this.$route.query["view"] === "blame";
 
     return {
       report: null,

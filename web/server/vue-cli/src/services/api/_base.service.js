@@ -11,37 +11,62 @@ import store from "@/store";
 import { ADD_ERROR, PURGE_AUTH } from "@/store/mutations.type";
 import authService from "./auth.service";
 
-// Host should be set explicitly to `hostname` because thrift will use
-// the value of `window.location.host` which will contain port number by
-// default on local host which cause invalid url format.
-const host = process.env.CC_SERVER_HOST || window.location.hostname;
-const port = parseInt(process.env.CC_SERVER_PORT, 10) ||
-  parseInt(window.location.port, 10);
-const api = process.env.CC_API_VERSION;
+const host = window.location.hostname;
+const port = undefined;
 
 const eventHub = mitt();
 
 class BaseService {
-  constructor(serviceName, serviceClass) {
-    this._serviceName = serviceName;
-    this._serviceClass = serviceClass;
-    this._client = this.createClient();
+  constructor(serviceName, serviceClass, apiPrefix = "v6", isProductScoped = false) {
+  this._serviceName = serviceName;
+  this._serviceClass = serviceClass;
+  this._apiPrefix = apiPrefix;
+  this._isProductScoped = isProductScoped;
 
-    eventHub.on("update", endpoint => {
-      this._client = this.createClient(endpoint);
-    });
+  this._client = null;
+  this._currentEndpoint = window.__cc_endpoint || null;
+
+  eventHub.on("update", endpoint => {
+    console.log("[BaseService] update received:", endpoint);
+    this._currentEndpoint = endpoint;
+    window.__cc_endpoint = endpoint;
+    this._client = null;
+  });
+}
+
+getClient() {
+  if (this._isProductScoped) {
+    const endpoint = router.currentRoute.value.params?.endpoint;
+    if (!endpoint) {
+      console.warn("[BaseService] No endpoint found in route params!");
+    }
+    this._currentEndpoint = endpoint || "";
   }
 
-  getClient() {
-    return this._client;
+  if (!this._client) {
+    this._client = this.createClient(this._currentEndpoint);
+  }
+  return this._client;
+}
+
+
+  getCurrentProduct() {
+    const endpoint = router.currentRoute.value.params?.endpoint;
+    console.log("TEST CURRENT:", endpoint);
+    return endpoint;
   }
 
-  createClient(endpoint) {
-    const productEndpoint = endpoint ? "/" + endpoint : "";
+  createClient(productEndpoint = "") {
+    const prefix = this._isProductScoped && productEndpoint
+    ? `/${productEndpoint}/${this._apiPrefix}`
+    : `/${this._apiPrefix}`;
+    const finalPath = `${prefix}/${this._serviceName}`;
+    console.log("[Thrift] final path:", finalPath);
+
     const connection = createXHRConnection(host, port, {
       transport: TBufferedTransport,
       protocol: TJSONProtocol,
-      path: `${productEndpoint}/v${api}/${this._serviceName}`,
+      path: finalPath,
       https: window.location.protocol === "https:"
     });
 
@@ -57,10 +82,7 @@ class BaseService {
           );
         } else if (this.readyState === 4) {
           if (this.status === 504) {
-            store.commit(
-              ADD_ERROR,
-              `Error ${this.status}: ${this.statusText}`
-            );
+            store.commit(ADD_ERROR, `Error ${this.status}: ${this.statusText}`);
           } else if (this.status === 401) {
             store.commit(PURGE_AUTH);
           }
@@ -76,7 +98,6 @@ class BaseService {
 
 const handleThriftError = function (cb, onError) {
   return (err, ...args) => {
-    
     if (!err) {
       if (cb) cb.apply(this, args);
       return;
@@ -84,7 +105,7 @@ const handleThriftError = function (cb, onError) {
 
     if (err instanceof Error) {
       const msg = err.message;
-      if (msg.indexOf("Error code 401:") !== -1) {
+      if (msg.includes("Error code 401:")) {
         store.commit(PURGE_AUTH);
         router
           .push({
@@ -94,9 +115,7 @@ const handleThriftError = function (cb, onError) {
           .catch(() => {});
         if (onError) onError(err);
         return;
-      } else if (
-        msg.search(/The product .* does not exist!/) > -1
-      ) {
+      } else if (msg.match(/The product .* does not exist!/)) {
         router.replace({ name: "404" }).catch(() => {});
         return;
       }
@@ -105,6 +124,7 @@ const handleThriftError = function (cb, onError) {
     if (onError) {
       onError(err);
     } else if (err instanceof Error) {
+      console.error("[Thrift Error]", err);
       store.commit(ADD_ERROR, err.message);
     }
   };
@@ -115,4 +135,3 @@ export {
   handleThriftError,
   BaseService
 };
-  

@@ -169,13 +169,13 @@ export default {
   data() {
     const itemsPerPageOptions = [ 25, 50, 100 ];
     const page = parseInt(
-      this.$router.currentRoute.query["page"]
+      this.$route.query["page"]
     ) || 1;
     const itemsPerPage = parseInt(
-      this.$router.currentRoute.query["items-per-page"]
+      this.$route.query["items-per-page"]
     ) || itemsPerPageOptions[0];
-    const sortBy = this.$router.currentRoute.query["sort-by"];
-    const sortDesc = this.$router.currentRoute.query["sort-desc"];
+    const sortBy = this.$route.query["sort-by"];
+    const sortDesc = this.$route.query["sort-desc"];
 
     return {
       initialized: false,

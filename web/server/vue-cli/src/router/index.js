@@ -35,7 +35,7 @@ const routes = [
     component: () => import("@/views/NotFound")
   },
   {
-    path: "/:endpoint",
+    path: "/:endpoint([A-Za-z0-9_-]+)",
     meta: { requiresAuth: true },
     component: () => import("@/views/ProductDetail"),
     children: [
@@ -50,56 +50,52 @@ const routes = [
         component: () => import("@/views/RunList")
       },
       {
-        path: "statistics",
-        component: () => import("@/views/Statistics"),
-        children: [
-          {
-            path: "",
-            name: "statistics",
-            redirect: "overview"
-          },
-          {
-            path: "overview",
-            name: "product-overview",
-            component: () =>
-              import("@/components/Statistics/Overview/Overview")
-          },
-          {
-            path: "checker",
-            name: "checker-statistics",
-            component: () =>
-              import("@/components/Statistics/Checker/CheckerStatistics")
-          },
-          {
-            path: "severity",
-            name: "severity-statistics",
-            component: () =>
-              import("@/components/Statistics/Severity/\
-SeverityStatistics")
-          },
-          {
-            path: "component",
-            name: "component-statistics",
-            component: () =>
-              import("@/components/Statistics/Component/\
-ComponentStatistics")
-          },
-          {
-            path: "coverage",
-            name: "checker-coverage-statistics",
-            component: () =>
-              import("@/components/Statistics/CheckerCoverage/\
-CheckerCoverageStatistics")
-          },
-          {
-            path: "guideline",
-            name: "guideline-statistics",
-            component: () =>
-              import("@/components/Statistics/Guideline/\
-GuidelineStatistics")
-          }
-        ]
-      },
+      path: "statistics",
+      component: () => import("@/views/Statistics"),
+      children: [
+        {
+          path: "",
+          name: "statistics",
+          redirect: "overview"
+        },
+        {
+          path: "overview",
+          name: "product-overview",
+          component: () =>
+            import("@/components/Statistics/Overview/Overview")
+        },
+        {
+          path: "checker",
+          name: "checker-statistics",
+          component: () =>
+            import("@/components/Statistics/Checker/CheckerStatistics")
+        },
+        {
+          path: "severity",
+          name: "severity-statistics",
+          component: () =>
+            import("@/components/Statistics/Severity/SeverityStatistics")
+        },
+        {
+          path: "component",
+          name: "component-statistics",
+          component: () =>
+            import("@/components/Statistics/Component/ComponentStatistics")
+        },
+        {
+          path: "coverage",
+          name: "checker-coverage-statistics",
+          component: () =>
+            import("@/components/Statistics/CheckerCoverage/CheckerCoverageStatistics")
+        },
+        {
+          path: "guideline",
+          name: "guideline-statistics",
+          component: () =>
+            import("@/components/Statistics/Guideline/GuidelineStatistics")
+        }
+      ]
+    },
       {
         path: "reports",
         name: "reports",

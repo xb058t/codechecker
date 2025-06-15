@@ -1,22 +1,22 @@
-const path = require("path");
-
 module.exports = {
-  configureWebpack: {
-    resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "src")
+  devServer: {
+    proxy: {
+      '^/v6': {
+        target: 'http://localhost:8001',
+        changeOrigin: true
+      },
+      '^/Configuration': {
+        target: 'http://localhost:8001',
+        changeOrigin: true
+      },
+      '^/ServerInfo': {
+        target: 'http://localhost:8001',
+        changeOrigin: true
+      },
+      '^/CodeCheckerService': {
+        target: 'http://localhost:8001',
+        changeOrigin: true
       }
     }
-  },
-
-  devServer: {
-    port: 8080,
-    proxy: {
-      "/v6.62": {
-        target: "http://localhost:8001",
-        changeOrigin: true,
-        secure: false
-      },
-    }
   }
-};
+}

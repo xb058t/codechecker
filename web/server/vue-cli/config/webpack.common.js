@@ -1,17 +1,17 @@
-const CopyPlugin = require("copy-webpack-plugin");
-const HTMLWebpackPlugin = require("html-webpack-plugin");
-const { VueLoaderPlugin } = require("vue-loader");
-const { DefinePlugin, ProvidePlugin } = require("webpack");
-const ESLintPlugin = require("eslint-webpack-plugin");
-const { join } = require("path");
+const CopyPlugin = require('copy-webpack-plugin');
+const HTMLWebpackPlugin = require('html-webpack-plugin');
+const {VueLoaderPlugin} = require('vue-loader');
+const {DefinePlugin, ProvidePlugin} = require('webpack');
+const ESLintPlugin = require('eslint-webpack-plugin');
+const {join} = require('path');
 
-const codeCheckerApi = require("codechecker-api/package.json");
+const codeCheckerApi = require('codechecker-api/package.json');
 const apiVersion = codeCheckerApi.version
   .split(".")
   .slice(0, 2)
   .join(".");
 
-const helpers = require("./helpers");
+const helpers = require('./helpers');
 
 function sassLoaderOptions(indentedSyntax = false) {
   return {
@@ -27,27 +27,27 @@ function cssLoaderOptions() {
 }
 
 module.exports = {
-  entry: helpers.root("src", "main.js"),
+  entry: helpers.root('src', 'main.js'),
   optimization: {
-    moduleIds: "deterministic",
-    runtimeChunk: "single",
+    moduleIds: 'deterministic',
+    runtimeChunk: 'single',
     splitChunks: {
       cacheGroups: {
         defaultVendors: {
           test: /[\\/]node_modules[\\/]/,
-          name: "vendors",
-          chunks: "all",
+          name: 'vendors',
+          chunks: 'all',
         },
       },
     },
   },
   resolve: {
   fallback: {
-    buffer: require.resolve("buffer/"),
-    util: require.resolve("util/"),
+    buffer: require.resolve('buffer/'),
+    util: require.resolve('util/'),
   },
   unsafeCache: true,
-  extensions: [".js", ".vue"],
+  extensions: ['.js', '.vue'],
   alias: {
     "@": helpers.root("src"),
     "@cc-api": helpers.root("src", "services", "api"),
