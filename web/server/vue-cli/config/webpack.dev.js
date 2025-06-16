@@ -73,6 +73,16 @@ module.exports = merge(common, {
         target: "http://localhost:8001",
         changeOrigin: true,
         secure: false
+      },
+      "/123": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        secure: false
+      },
+      "/v6.61": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        secure: false
       }
     }
   },
@@ -81,7 +91,7 @@ module.exports = merge(common, {
       "process.env": {
         "CC_SERVER_HOST": JSON.stringify("localhost"),
         "CC_SERVER_PORT": JSON.stringify("8001"),
-        "CC_API_VERSION": JSON.stringify("6.62")
+        "CC_API_VERSION": JSON.stringify("6.61")
       }
     })
   ]

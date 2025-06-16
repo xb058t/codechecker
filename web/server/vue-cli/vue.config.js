@@ -1,22 +1,18 @@
 module.exports = {
   devServer: {
     proxy: {
-      '^/v6': {
+      '^/v6.61': {
         target: 'http://localhost:8001',
         changeOrigin: true
       },
-      '^/Configuration': {
+      '^/123': {
         target: 'http://localhost:8001',
         changeOrigin: true
       },
-      '^/ServerInfo': {
-        target: 'http://localhost:8001',
-        changeOrigin: true
-      },
-      '^/CodeCheckerService': {
+      '^/1231': {
         target: 'http://localhost:8001',
         changeOrigin: true
       }
     }
   }
-}
+};

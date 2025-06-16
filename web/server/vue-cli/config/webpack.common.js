@@ -6,10 +6,7 @@ const ESLintPlugin = require('eslint-webpack-plugin');
 const {join} = require('path');
 
 const codeCheckerApi = require('codechecker-api/package.json');
-const apiVersion = codeCheckerApi.version
-  .split(".")
-  .slice(0, 2)
-  .join(".");
+const apiVersion = "6.61";
 
 const helpers = require('./helpers');
 

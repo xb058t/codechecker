@@ -477,41 +477,56 @@ export default {
     },
 
     fetchRuns() {
-      this.loading = true;
+  this.loading = true;
 
-    // Get the total number of runs.
-    ccService.getClient().getRunCount(this.endpoint, this.runFilter,
-      handleThriftError(totalItems => {
-        this.totalItems = totalItems.toNumber();
-      }));
 
-    // Get the runs.
-    const limit = this.pagination.itemsPerPage;
-    const offset = limit * (this.pagination.page - 1);
-    const sortMode = this.getSortMode();
+  ccService.getClient().getRunCount(this.runFilter,
+    handleThriftError(totalItems => {
+      this.totalItems = totalItems.toNumber();
+    })
+  );
 
-    return new Promise(resolve => {
-      ccService.getClient().getRunData(this.endpoint, this.runFilter,
-        limit, offset, sortMode, handleThriftError(runs => {
-          this.runs = runs.map(r => {
-            const version = this.prettifyCCVersion(r.codeCheckerVersion);
+  const limit = this.pagination.itemsPerPage;
+  const offset = limit * (this.pagination.page - 1);
+  const sortMode = this.getSortMode();
 
-            const oldRun = this.expanded.find(e =>
-              e.runId.toNumber() === r.runId.toNumber());
+  return new Promise((resolve, reject) => {
+    const callback = handleThriftError((err, runs) => {
+      this.loading = false;
 
-            return {
-              ...r,
-              $history: oldRun ? oldRun.$history : null,
-              $duration: this.prettifyDuration(r.duration),
-              $codeCheckerVersion: version
-            };
-          });
+      if (err) {
+        reject(err);
+        return;
+      }
 
-          this.loading = false;
-          resolve(this.runs);
-        }));
+      this.runs = runs.map(r => {
+        const version = this.prettifyCCVersion(r.codeCheckerVersion);
+        const oldRun = this.expanded.find(e =>
+          e.runId.toNumber() === r.runId.toNumber()
+        );
+
+        return {
+          ...r,
+          $history: oldRun ? oldRun.$history : null,
+          $duration: this.prettifyDuration(r.duration),
+          $codeCheckerVersion: version
+        };
+      });
+
+      resolve();
     });
-  },
+
+    ccService.getClient().getRunData(
+      this.endpoint,
+      this.runFilter,
+      limit,
+      offset,
+      sortMode,
+      callback
+    );
+  });
+},
+
 
     openAnalysisInfoDialog(runId, runHistoryId=null) {
       this.selectedRunId = runId;

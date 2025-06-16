@@ -76,10 +76,11 @@ getClient() {
 
       xreq.addEventListener("readystatechange", function () {
         if (this.readyState === 1) {
-          xreq.setRequestHeader(
-            "Authorization",
-            "Bearer " + authService.getToken()
-          );
+          const token = authService.getToken();
+          if (token) {
+            xreq.setRequestHeader("Authorization", "Bearer " + token);
+          }
+
         } else if (this.readyState === 4) {
           if (this.status === 504) {
             store.commit(ADD_ERROR, `Error ${this.status}: ${this.statusText}`);
@@ -113,7 +114,7 @@ const handleThriftError = function (cb, onError) {
             query: { return_to: router.currentRoute.fullPath }
           })
           .catch(() => {});
-        if (onError) onError(err);
+        // if (onError) onError(err);
         return;
       } else if (msg.match(/The product .* does not exist!/)) {
         router.replace({ name: "404" }).catch(() => {});
