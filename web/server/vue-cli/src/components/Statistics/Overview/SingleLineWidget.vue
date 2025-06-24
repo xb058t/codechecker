@@ -32,6 +32,7 @@
 
 <script>
 import TooltipHelpIcon from "@/components/TooltipHelpIcon";
+import bus from "@/bus";
 
 export default {
   name: "SingleLineWidget",
@@ -41,7 +42,6 @@ export default {
     color: { type: String, required: true },
     label: { type: String, required: true },
     helpMessage: { type: String, default: null },
-    bus: { type: Object, required: true },
     getValue: { type: Function, required: true }
   },
   data() {
@@ -51,7 +51,7 @@ export default {
     };
   },
   activated() {
-    this.bus.$on("refresh", () => this.fetchValue());
+    bus.on("refresh", () => this.fetchValue());
   },
   methods: {
     async fetchValue() {

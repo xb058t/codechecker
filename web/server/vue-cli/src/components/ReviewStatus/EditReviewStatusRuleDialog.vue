@@ -89,28 +89,35 @@ export default {
     }
   },
   watch: {
-    dialog() {
-      if (this.dialog) {
-        this.$refs.form?.resetValidation();
+    dialog(val) {
+      if (val && this.$refs.form?.resetValidation) {
+        this.$refs.form.resetValidation();
       }
     },
-    rule() {
-      this.reportHash = this.rule?.reportHash;
-      this.status = this.rule?.status;
-      this.message = this.rule?.message;
+    rule(val) {
+      this.reportHash = val?.reportHash;
+      this.status = val?.status;
+      this.message = val?.message;
     }
   },
-  methods: {
-    async saveReviewStatusRule() {
-      if (!this.$refs.form.validate()) return;
 
-      ccService.getClient().addReviewStatusRule(
-        this.reportHash, this.status, this.message,
-        handleThriftError(async () => {
-          this.$emit("on:confirm");
-          this.dialog = false;
-        }));
+  methods: {
+  async saveReviewStatusRule() {
+    const form = this.$refs.form;
+    if (form && typeof form.validate === "function" && !form.validate()) {
+      return;
     }
+
+    ccService.getClient().addReviewStatusRule(
+      this.reportHash,
+      this.status,
+      this.message,
+      handleThriftError(async () => {
+        this.$emit("on:confirm");
+        this.dialog = false;
+      })
+    );
+  }
   }
 };
 </script>

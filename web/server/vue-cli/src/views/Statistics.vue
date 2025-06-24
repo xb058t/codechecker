@@ -48,6 +48,8 @@
 <script>
 import mitt from "mitt";
 import { Pane, Splitpanes } from "splitpanes";
+import "splitpanes/dist/splitpanes.css";
+
 import { mapState } from "vuex";
 
 import { ccService, handleThriftError } from "@cc-api";

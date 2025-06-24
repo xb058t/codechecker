@@ -114,13 +114,13 @@ import {
 import { DateMixin } from "@/mixins";
 
 import TooltipHelpIcon from "@/components/TooltipHelpIcon.vue";
+import bus from "@/bus";
 
 export default {
   name: "Reports",
   components: { TooltipHelpIcon },
   mixins: [ DateMixin ],
   props: {
-    bus: { type: Object, required: true },
     runIds: {
       required: true,
       validator: v => typeof v === "object" || v === null
@@ -165,7 +165,7 @@ export default {
     };
   },
   activated() {
-    this.bus.$on("refresh", () => this.fetchValues());
+    bus.on("refresh", () => this.fetchValues());
   },
   methods: {
     fetchValues() {

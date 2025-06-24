@@ -1,25 +1,26 @@
 <template>
-  <splitpanes class="default-theme">
-    <pane size="20" :style="{ 'min-width': '300px' }">
+  <Splitpanes class="default-theme fill-height">
+    <Pane size="20" :style="{ 'min-width': '300px' }">
       <report-filter
-        v-fill-height
+        style="height: 100%;"
         :namespace="namespace"
         :report-count="totalItems"
         @refresh="refresh"
       />
-    </pane>
-    <pane>
+    </Pane>
+
+    <Pane>
       <checker-documentation-dialog
-        :value.sync="checkerDocDialog"
+        v-model="checkerDocDialog"
         :checker="selectedChecker"
       />
 
       <v-data-table
         v-model="selected"
-        v-fill-height
+        style="height: 100%;"
         :headers="tableHeaders"
         :items="formattedReports"
-        :options.sync="pagination"
+        v-model:options="pagination"
         :loading="loading"
         loading-text="Loading reports..."
         :server-items-length.sync="totalItems"
@@ -32,7 +33,7 @@
         item-key="$id"
         @item-expanded="itemExpanded"
       >
-        <template v-slot:top>
+        <template #top>
           <v-toolbar flat class="report-filter-toolbar" dense>
             <v-row>
               <v-col class="pa-0" align="right">
@@ -42,11 +43,8 @@
           </v-toolbar>
         </template>
 
-        <template v-slot:expanded-item="{ item }">
-          <td
-            class="pa-0"
-            :colspan="headers.length"
-          >
+        <template #expanded-item="{ item }">
+          <td class="pa-0" :colspan="headers.length">
             <v-list v-if="item.sameReports">
               <v-list-item
                 v-for="report in item.sameReports"
@@ -81,17 +79,10 @@
               </v-list-item>
             </v-list>
 
-            <v-card
-              v-else
-              flat
-              tile
-            >
+            <v-card v-else flat tile>
               <v-card-text>
                 Loading...
-                <v-progress-linear
-                  indeterminate
-                  class="mb-0"
-                />
+                <v-progress-linear indeterminate class="mb-0" />
               </v-card-text>
             </v-card>
           </td>
@@ -152,6 +143,7 @@
             class="pa-1"
           />
         </template>
+
         <template v-else #item.reviewData="{ item }">
           <review-status-icon :status="parseInt(item.reviewData.status)" />
         </template>
@@ -163,12 +155,13 @@
           />
         </template>
       </v-data-table>
-    </pane>
-  </splitpanes>
+    </Pane>
+  </Splitpanes>
 </template>
 
 <script>
 import { Pane, Splitpanes } from "splitpanes";
+import "splitpanes/dist/splitpanes.css";
 
 import { mapGetters } from "vuex";
 
@@ -183,9 +176,8 @@ import {
   SeverityIcon
 } from "@/components/Icons";
 
-import CheckerDocumentationDialog from
-  "@/components/CheckerDocumentationDialog";
-import { ReportFilter } from "@/components/Report/ReportFilter";
+import CheckerDocumentationDialog from "@/components/CheckerDocumentationDialog";
+import ReportFilter from "@/components/Report/ReportFilter/ReportFilter.vue";
 import { SetCleanupPlanBtn } from "@/components/Report/CleanupPlan";
 
 const namespace = "report";
@@ -203,108 +195,50 @@ export default {
     SetCleanupPlanBtn
   },
   directives: { FillHeight },
-  mixins: [ BugPathLengthColorMixin, DetectionStatusMixin ],
+  mixins: [BugPathLengthColorMixin, DetectionStatusMixin],
 
   data() {
-    const itemsPerPageOptions = [ 25, 50, 100 ];
+    const itemsPerPageOptions = [25, 50, 100];
+    const query = this.$route.query;
 
-    const page = parseInt(this.$route.query["page"]) || 1;
-    const itemsPerPage =
-      parseInt(this.$route.query["items-per-page"]) ||
-      itemsPerPageOptions[0];
-    const sortBy = this.$route.query["sort-by"];
-    const sortDesc = this.$route.query["sort-desc"];
+    const page = parseInt(query["page"]) || 1;
+    const itemsPerPage = parseInt(query["items-per-page"]) || itemsPerPageOptions[0];
+    const sortBy = query["sort-by"];
+    const sortDesc = query["sort-desc"];
 
     return {
       headers: [
-        {
-          text: "",
-          value: "data-table-expand"
-        },
-        {
-          text: "Report hash",
-          value: "bugHash",
-          sortable: false
-        },
-        {
-          text: "File",
-          value: "checkedFile",
-          sortable: true
-        },
-        {
-          text: "Message",
-          value: "checkerMsg",
-          sortable: false
-        },
-        {
-          text: "Checker name",
-          value: "checkerId",
-          sortable: true
-        },
-        {
-          text: "Analyzer",
-          value: "analyzerName",
-          align: "center",
-          sortable: false
-        },
-        {
-          text: "Severity",
-          value: "severity",
-          sortable: true
-        },
-        {
-          text: "Bug path length",
-          value: "bugPathLength",
-          align: "center",
-          sortable: true
-        },
-        {
-          text: "Latest review status",
-          value: "reviewData",
-          align: "center",
-          sortable: true
-        },
-        {
-          text: "Latest detection status",
-          value: "detectionStatus",
-          align: "center",
-          sortable: true
-        },
-        {
-          text: "Timestamp",
-          value: "timestamp",
-          align: "center",
-          sortable: true
-        },
-        {
-          text: "Chronological order",
-          value: "chronological_order",
-          align: "center",
-          sortable: true
-        },
-        {
-          text: "Testcase",
-          value: "testcase",
-          align: "center",
-          sortable: true
-        }
+        { text: "", value: "data-table-expand" },
+        { text: "Report hash", value: "bugHash", sortable: false },
+        { text: "File", value: "checkedFile", sortable: true },
+        { text: "Message", value: "checkerMsg", sortable: false },
+        { text: "Checker name", value: "checkerId", sortable: true },
+        { text: "Analyzer", value: "analyzerName", align: "center", sortable: false },
+        { text: "Severity", value: "severity", sortable: true },
+        { text: "Bug path length", value: "bugPathLength", align: "center", sortable: true },
+        { text: "Latest review status", value: "reviewData", align: "center", sortable: true },
+        { text: "Latest detection status", value: "detectionStatus", align: "center", sortable: true },
+        { text: "Timestamp", value: "timestamp", align: "center", sortable: true },
+        { text: "Chronological order", value: "chronological_order", align: "center", sortable: true },
+        { text: "Testcase", value: "testcase", align: "center", sortable: true }
       ],
       reports: [],
       sameReports: {},
       hasTimeStamp: true,
-      hasTestCase : true,
+      hasTestCase: true,
       hasChronologicalOrder: true,
       selected: [],
       namespace: namespace,
       pagination: {
         page: page,
         itemsPerPage: itemsPerPage,
-        sortBy: sortBy ? [ sortBy ] : [],
-        sortDesc: sortDesc !== undefined ? [ !!sortDesc ] : []
+        sortBy: sortBy ? [sortBy] : [],
+        sortDesc:
+          sortDesc !== undefined
+            ? [sortDesc === "true" || sortDesc === true]
+            : []
       },
-      footerProps: {
-        itemsPerPageOptions: itemsPerPageOptions
-      },
+      footerProps: { itemsPerPageOptions: itemsPerPageOptions },
       totalItems: 0,
       loading: false,
       runIdsUnwatch: null,
@@ -326,28 +260,12 @@ export default {
 
     tableHeaders() {
       if (!this.headers) return;
-
       return this.headers.filter(header => {
-        if (header.value === "detectionStatus") {
-          return !this.reportFilter.isUnique;
-        }
-
-        if (header.value === "data-table-expand") {
-          return this.reportFilter.isUnique;
-        }
-
-        if (header.value === "timestamp") {
-          return this.hasTimeStamp;
-        }
-
-        if (header.value === "testcase") {
-          return this.hasTestCase;
-        }
-
-        if (header.value === "chronological_order") {
-          return this.hasChronologicalOrder;
-        }
-
+        if (header.value === "detectionStatus") return !this.reportFilter.isUnique;
+        if (header.value === "data-table-expand") return this.reportFilter.isUnique;
+        if (header.value === "timestamp") return this.hasTimeStamp && !this.reportFilter.isUnique;
+        if (header.value === "testcase") return this.hasTestCase && !this.reportFilter.isUnique;
+        if (header.value === "chronological_order") return this.hasChronologicalOrder && !this.reportFilter.isUnique;
         return true;
       });
     },
@@ -356,18 +274,14 @@ export default {
       return this.reports.map(report => {
         const reportId = report.reportId ? report.reportId.toString() : "";
         const id = reportId + report.bugHash;
-
-        const detectionStatus =
-          this.detectionStatusFromCodeToString(report.detectionStatus);
-        const detectedAt = report.detectedAt
-          ? this.$options.filters.prettifyDate(report.detectedAt) : null;
-        const fixedAt = report.fixedAt
-          ? this.$options.filters.prettifyDate(report.fixedAt) : null;
+        const detectionStatus = this.detectionStatusFromCodeToString(report.detectionStatus);
+        const detectedAt = report.detectedAt ? this.$options.filters.prettifyDate(report.detectedAt) : null;
+        const fixedAt = report.fixedAt ? this.$options.filters.prettifyDate(report.fixedAt) : null;
 
         const detectionStatusTitle = [
           `Status: ${detectionStatus}`,
-          ...(detectedAt ? [ `Detected at: ${detectedAt}` ] : []),
-          ...(fixedAt ? [ `Fixed at: ${fixedAt}` ] : [])
+          ...(detectedAt ? [`Detected at: ${detectedAt}`] : []),
+          ...(fixedAt ? [`Fixed at: ${fixedAt}`] : [])
         ].join("\n");
 
         return {
@@ -387,22 +301,15 @@ export default {
     pagination: {
       handler() {
         this.updateUrl();
-        if (this.initalized) {
-          this.fetchReports();
-        }
+        if (this.initalized) this.fetchReports();
       },
       deep: true
     },
     formattedReports: {
       handler() {
-        this.hasTimeStamp =
-          this.formattedReports.some(report => report.timestamp);
-
-        this.hasTestCase =
-          this.formattedReports.some(report => report.testcase);
-
-        this.hasChronologicalOrder =
-          this.formattedReports.some(report => report["chronological_order"]);
+        this.hasTimeStamp = this.formattedReports.some(r => r.timestamp);
+        this.hasTestCase = this.formattedReports.some(r => r.testcase);
+        this.hasChronologicalOrder = this.formattedReports.some(r => r["chronological_order"]);
       }
     }
   },
@@ -410,7 +317,6 @@ export default {
   methods: {
     itemExpanded(expandedItem) {
       if (expandedItem.item.sameReports) return;
-
       const bugHash = expandedItem.item.bugHash;
       ccService.getSameReports(bugHash).then(sameReports => {
         expandedItem.item.sameReports = sameReports;
@@ -418,62 +324,54 @@ export default {
     },
 
     getSortMode() {
-      let type = null;
-      switch (this.pagination.sortBy[0]) {
-      case "checkedFile":
-        type = SortType.FILENAME;
-        break;
-      case "checkerId":
-        type = SortType.CHECKER_NAME;
-        break;
-      case "detectionStatus":
-        type = SortType.DETECTION_STATUS;
-        break;
-      case "reviewData":
-        type = SortType.REVIEW_STATUS;
-        break;
-      case "bugPathLength":
-        type = SortType.BUG_PATH_LENGTH;
-        break;
-      case "timestamp":
-        type = SortType.TIMESTAMP;
-        break;
-      case "testcase":
-        type = SortType.TESTCASE;
-        break;
-      case "chronological_order":
-        type = SortType.CHRONOLOGICAL_ORDER;
-        break;
-      default:
-        type = SortType.SEVERITY;
-      }
+      const sortBy = Array.isArray(this.pagination.sortBy)
+        ? this.pagination.sortBy[0]
+        : undefined;
 
-      const ord = this.pagination.sortDesc[0] ? Order.DESC : Order.ASC;
+      const sortDesc = Array.isArray(this.pagination.sortDesc)
+        ? this.pagination.sortDesc[0]
+        : false;
 
-      return [ new SortMode({ type: type, ord: ord }) ];
+      const ord = sortDesc ? Order.DESC : Order.ASC;
+
+      const type = {
+        checkedFile: SortType.FILENAME,
+        checkerId: SortType.CHECKER_NAME,
+        detectionStatus: SortType.DETECTION_STATUS,
+        reviewData: SortType.REVIEW_STATUS,
+        bugPathLength: SortType.BUG_PATH_LENGTH,
+        timestamp: SortType.TIMESTAMP,
+        testcase: SortType.TESTCASE,
+        chronological_order: SortType.CHRONOLOGICAL_ORDER
+      }[sortBy] || SortType.SEVERITY;
+
+      return [new SortMode({ type, ord })];
     },
 
     openCheckerDocDialog(checkerId, analyzerName) {
-      this.selectedChecker = new Checker({
-        checkerId: checkerId,
-        analyzerName: analyzerName
-      });
+      this.selectedChecker = new Checker({ checkerId, analyzerName });
       this.checkerDocDialog = true;
     },
 
     updateUrl() {
-      const defaultItemsPerPage = this.footerProps.itemsPerPageOptions[0];
-      const itemsPerPage =
-        this.pagination.itemsPerPage === defaultItemsPerPage
-          ? undefined
-          : this.pagination.itemsPerPage;
+      const pagination = this.pagination || {};
 
-      const page = this.pagination.page === 1
-        ? undefined : this.pagination.page;
-      const sortBy = this.pagination.sortBy.length
-        ? this.pagination.sortBy[0] : undefined;
-      const sortDesc = this.pagination.sortDesc.length
-        ? this.pagination.sortDesc[0] : undefined;
+      const defaultItemsPerPage = this.footerProps.itemsPerPageOptions[0];
+      const itemsPerPage = pagination.itemsPerPage === defaultItemsPerPage
+        ? undefined
+        : pagination.itemsPerPage;
+
+      const page = pagination.page === 1
+        ? undefined
+        : pagination.page;
+
+      const sortBy = Array.isArray(pagination.sortBy)
+        ? pagination.sortBy[0]
+        : undefined;
+
+      const sortDesc = Array.isArray(pagination.sortDesc)
+      ? pagination.sortDesc[0]
+      : undefined;
 
       this.$router.replace({
         query: {
@@ -481,18 +379,16 @@ export default {
           "items-per-page": itemsPerPage,
           "page": page,
           "sort-by": sortBy,
-          "sort-desc": sortDesc,
+          "sort-desc": sortDesc
         }
       }).catch(() => {});
     },
 
     refresh() {
       this.expanded = [];
-
-      ccService.getClient().getRunResultCount(this.runIds,
-        this.reportFilter, this.cmpData, handleThriftError(res => {
-          this.totalItems = res.toNumber();
-        }));
+      ccService.getClient().getRunResultCount(this.runIds, this.reportFilter, this.cmpData, handleThriftError(res => {
+        this.totalItems = res.toNumber();
+      }));
 
       if (this.pagination.page !== 1 && this.initalized) {
         this.pagination.page = 1;
@@ -503,24 +399,21 @@ export default {
 
     fetchReports() {
       this.loading = true;
-
       const limit = this.pagination.itemsPerPage;
       const offset = limit * (this.pagination.page - 1);
       const sortType = this.getSortMode();
       const getDetails = false;
 
       ccService.getClient().getRunResults(this.runIds, limit, offset, sortType,
-        this.reportFilter, this.cmpData, getDetails,
-        handleThriftError(reports => {
+        this.reportFilter, this.cmpData, getDetails, handleThriftError(reports => {
           this.reports = reports;
           this.loading = false;
           this.initalized = true;
 
           reports.forEach(report => {
             ccService.getSameReports(report.bugHash).then(sameReports => {
-              this.$set(
-                this.sameReports, report.bugHash,
-                [ ...new Set(sameReports.map(r => r.reviewData.status)) ]);
+              this.$set(this.sameReports, report.bugHash,
+                [...new Set(sameReports.map(r => r.reviewData.status))]);
             });
           });
         }));
@@ -531,8 +424,12 @@ export default {
 
 <style lang="scss" scoped>
 .splitpanes.default-theme {
+  height: calc(100vh - 64px);
+
   .splitpanes__pane {
     background-color: inherit;
+    overflow: auto;
+    padding: 8px;
   }
 }
 
@@ -546,5 +443,22 @@ export default {
   .checker-name {
     cursor: pointer;
   }
+
+  .v-data-table__wrapper {
+    overflow-x: auto;
+  }
+}
+
+.report-filter-toolbar {
+  padding: 0;
+}
+
+.v-toolbar.report-filter-toolbar {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.v-container {
+  padding: 0 !important;
 }
 </style>

@@ -114,23 +114,23 @@ export default {
   name: "NewSourceComponentDialog",
   props: {
     value: { type: Boolean, default: false },
-    sourceComponent: { type: Object, default: () => null },
+    sourceComponent: { type: Object, default: () => null }
   },
   data() {
     return {
-      placeHolderValue: "Value of the source component.\nEach line must start "
-                      + "with a \"+\" (results from this path should be "
-                      + "listed) or a \"-\" (results from this path should "
-                      + "not be listed) sign.\nFor whole directories, a "
-                      + "trailing \"*\" must be added.\n"
-                      + "E.g.: +/a/b/x.cpp or -/a/b/*",
+      placeHolderValue:
+        "Value of the source component.\nEach line must start "
+        + "with a \"+\" (results from this path should be listed) "
+        + "or a \"-\" (results from this path should not be listed) sign.\n"
+        + "For whole directories, a trailing \"*\" must be added.\n"
+        + "E.g.: +/a/b/x.cpp or -/a/b/*",
       rules: {
         name: [ v => !!v || "Name is required" ],
         value: [
           v => !!v || "Value is required",
-          v => isValidComponentValue(v) || "Component value format is "
-            + "invalid! Every line should start with + or - sign followed by "
-            + "one or more character."
+          v => isValidComponentValue(v) || "Component value format is invalid! "
+            + "Every line should start with + or - sign followed by one or "
+            + "more character."
         ]
       }
     };
@@ -152,30 +152,37 @@ export default {
 
   methods: {
     async saveSourceComponent() {
-      if (!this.$refs.form.validate()) return;
+      const form = this.$refs.form;
 
-      // Remove the original component because the user would like to change
-      // the name.
+      if (form && typeof form.validate === "function" && !form.validate()) {
+        return;
+      }
+
       if (this.sourceComponent &&
           this.sourceComponent.name !== this.component.name
       ) {
         await ccService.getClient().removeSourceComponent(
-          this.sourceComponent.name, handleThriftError);
+          this.sourceComponent.name, handleThriftError
+        );
       }
 
       const component = this.component;
-      ccService.getClient().addSourceComponent(component.name,
-        component.value, component.description,
+      ccService.getClient().addSourceComponent(
+        component.name,
+        component.value,
+        component.description,
         handleThriftError(success => {
           if (success) {
             this.$emit("save:component");
             this.dialog = false;
           }
           // TODO: handle case when success is false.
-        }));
+        })
+      );
     }
   }
 };
+
 </script>
 
 <style lang="scss">

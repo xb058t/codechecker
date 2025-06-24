@@ -140,7 +140,8 @@ export default {
 
   methods: {
     async saveCleanupPlan() {
-      if (!this.$refs.form.validate()) return;
+      const form = this.$refs.form;
+      if (form && typeof form.validate === "function" && !form.validate()) return;
 
       if (this.cleanupPlan) {
         // Edit an existing cleanup plan.
@@ -152,7 +153,8 @@ export default {
               this.$emit("save:cleanup-plan");
               this.dialog = false;
             }
-          }));
+          })
+        );
       } else {
         // Add new cleanup plan.
         ccService.getClient().addCleanupPlan(
@@ -160,9 +162,10 @@ export default {
           handleThriftError(async () => {
             this.$emit("save:cleanup-plan");
             this.dialog = false;
-          }));
+          })
+        );
       }
-    },
+  },
 
     onAPIOperationFinished(success) {
       if (success) {

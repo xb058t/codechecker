@@ -269,7 +269,7 @@
 </template>
 
 <script>
-import mitt from "mitt";
+import bus from "@/bus";
 import { createApp } from "vue";
 
 import CodeMirror from "codemirror";
@@ -445,52 +445,57 @@ export default {
   },
 
   mounted() {
-    this.editor = CodeMirror.fromTextArea(this.$refs.editor, {
-      lineNumbers: true,
-      readOnly: true,
-      mode: "text/x-c++src",
-      gutters: [ "CodeMirror-linenumbers", "bugInfo" ],
-      extraKeys: {},
-      viewportMargin: 200,
-      highlightSelectionMatches : { showToken: /\w/, annotateScrollbar: true }
-    });
-    this.editor.setSize("100%", "100%");
+  const editorRef = this.$refs.editor;
+  if (!editorRef) return;
 
-    this.editor.on("viewportChange", (cm, from, to) => {
-      this.drawLines(from, to);
-    });
+  this.editor = CodeMirror.fromTextArea(editorRef, {
+    lineNumbers: true,
+    readOnly: true,
+    mode: "text/x-c++src",
+    gutters: [ "CodeMirror-linenumbers", "bugInfo" ],
+    extraKeys: {},
+    viewportMargin: 200,
+    highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true }
+  });
 
-    this.annotation = this.editor.annotateScrollbar({
-      className: "scrollbar-bug-annotation"
-    });
+  this.editor.setSize("100%", "100%");
 
-    if (this.treeItem) {
-      this.init(this.treeItem);
-    }
+  this.editor.on("viewportChange", (cm, from, to) => {
+    this.drawLines(from, to);
+  });
 
-    this.bus.$on("jpmToPrevReport", attrs => {
-      this.loadReportStep(this.report, {
-        stepId: attrs.$id,
-        fileId: attrs.fileId,
-        startLine: attrs.startLine
-      });
-    });
+  this.annotation = this.editor.annotateScrollbar({
+    className: "scrollbar-bug-annotation"
+  });
 
-    this.bus.$on("jpmToNextReport", attrs => {
-      this.loadReportStep(this.report, {
-        stepId: attrs.$id,
-        fileId: attrs.fileId,
-        startLine: attrs.startLine
-      });
-    });
+  if (this.treeItem) {
+    this.init(this.treeItem);
+  }
 
-    this.bus.$on("showDocumentation", () => {
-      this.selectedChecker = new Checker({
-        analyzerName: this.report.analyzerName,
-        checkerId: this.report.checkerId
-      });
+  bus.on("jpmToPrevReport", attrs => {
+    this.loadReportStep(this.report, {
+      stepId: attrs.$id,
+      fileId: attrs.fileId,
+      startLine: attrs.startLine
     });
-  },
+  });
+
+  bus.on("jpmToNextReport", attrs => {
+    this.loadReportStep(this.report, {
+      stepId: attrs.$id,
+      fileId: attrs.fileId,
+      startLine: attrs.startLine
+    });
+  });
+
+  bus.on("showDocumentation", () => {
+    this.selectedChecker = new Checker({
+      analyzerName: this.report.analyzerName,
+      checkerId: this.report.checkerId
+    });
+  });
+},
+
 
   methods: {
     init(treeItem) {
@@ -769,7 +774,6 @@ export default {
           const props = {
             type: type,
             index: event.$index,
-            bus: this.bus,
             prevStep: event.$prevStep,
             nextStep: event.$nextStep,
             docUrl: this.docUrl

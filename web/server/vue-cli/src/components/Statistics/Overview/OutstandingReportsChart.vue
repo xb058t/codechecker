@@ -10,6 +10,7 @@ import ChartDataLabels from "chartjs-plugin-datalabels";
 import { ccService, handleThriftError } from "@cc-api";
 import { ReportFilter, Severity } from "@cc/report-server-types";
 import { DateMixin, SeverityMixin } from "@/mixins";
+import bus from "@/bus";
 
 // const { reactiveData } = mixins;
 
@@ -18,7 +19,6 @@ export default {
   extends: Line,
   mixins: [ DateMixin, SeverityMixin ],
   props: {
-    bus: { type: Object, required: true },
     getStatisticsFilters: { type: Function, required: true },
     interval: { type: String, required: true },
     resolution: { type: String, required: true },
@@ -123,7 +123,7 @@ export default {
   },
 
   activated() {
-    this.bus.$on("refresh", () => this.fetchData(this.dates));
+    bus.on("refresh", () => this.fetchData(this.dates));
   },
 
   methods: {

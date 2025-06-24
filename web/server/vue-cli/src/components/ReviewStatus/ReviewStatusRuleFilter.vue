@@ -65,7 +65,7 @@
 import _ from "lodash";
 
 import { ReviewStatusRuleFilter } from "@cc/report-server-types";
-
+import bus from "@/bus";
 import { ReviewStatusMixin } from "@/mixins";
 import TooltipHelpIcon from "@/components/TooltipHelpIcon";
 import SelectReviewStatus from "./SelectReviewStatus";
@@ -75,7 +75,6 @@ export default {
   components: { SelectReviewStatus, TooltipHelpIcon },
   mixins: [ ReviewStatusMixin ],
   props: {
-    bus: { type: Object, required: true }
   },
   data() {
     const queries = this.$route.query;
@@ -122,7 +121,7 @@ export default {
   mounted() {
     this.onFilterChanged();
 
-    this.bus.$on("clear", () => {
+    bus.on("clear", () => {
       this.reportHash = null;
       this.author = null;
       this.reviewStatus = null;

@@ -310,9 +310,12 @@ export default {
     }
   },
   methods: {
-    validate() {
-      return this.$refs.form.validate();
-    }
+  validate() {
+    const form = this.$refs.form;
+    return form && typeof form.validate === "function"
+      ? form.validate()
+      : false;
+  }
   }
 };
 </script>

@@ -17,15 +17,17 @@ import * as directives from "vuetify/directives";
 import { aliases, mdi } from "vuetify/iconsets/mdi-svg";
 import { eventHub } from "@/services/api/eventHub";
 
-
 const vuetify = createVuetify({
   components,
   directives,
   icons: {
     defaultSet: "mdi",
     aliases,
-    sets: {
-      mdi
+    sets: { mdi }
+  },
+  defaults: {
+    global: {
+      density: "compact"
     }
   }
 });

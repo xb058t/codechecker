@@ -81,6 +81,8 @@
 <script>
 import { authService, handleThriftError } from "@cc-api";
 import { Permission } from "@cc/shared-types";
+import bus from "@/bus";
+
 
 export default {
   name: "BaseProductPermission",
@@ -90,7 +92,6 @@ export default {
     title: { type: String, default: "" },
     label: { type: String, default: "" },
     icon: { type: String, default: "mdi-account-outline" },
-    bus: { type: Object, required: true },
     extraParamsJson: { type: String, required: true },
     isGroup: { type: Boolean, required: true }
   },
@@ -103,7 +104,11 @@ export default {
   },
 
   mounted() {
-    this.bus.$on("save", this.saveAll);
+    bus.on("save", this.saveAll);
+  },
+
+  beforeUnmount() {
+    bus.off("save", this.saveAll);
   },
 
   methods: {

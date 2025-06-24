@@ -62,18 +62,19 @@ export default {
   },
   methods: {
     save() {
-      if (!this.$refs.form.validate()) return;
+    const form = this.$refs.form;
+    if (form && typeof form.validate === "function" && !form.validate()) return;
 
-      prodService.getClient().addProduct(this.productConfig,
-        handleThriftError(() => {
-          this.$emit("on-complete",
-            new ProductConfiguration(this.productConfig));
+    prodService.getClient().addProduct(this.productConfig,
+      handleThriftError(() => {
+        this.$emit("on-complete",
+          new ProductConfiguration(this.productConfig));
 
-          this.dialog = false;
-          this.productConfig = new ProductConfiguration({
-            connection: new DatabaseConnection()
-          });
-        }));
+        this.dialog = false;
+        this.productConfig = new ProductConfiguration({
+          connection: new DatabaseConnection()
+        });
+      }));
     }
   }
 };

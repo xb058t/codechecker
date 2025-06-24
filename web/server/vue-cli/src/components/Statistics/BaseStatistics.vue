@@ -1,11 +1,11 @@
 <script>
 import { mapState } from "vuex";
 import { CompareData, DiffType, ReportFilter } from "@cc/report-server-types";
+import bus from "@/bus";
 
 export default {
   name: "BaseStatistics",
   props: {
-    bus: { type: Object, required: true },
     namespace: { type: String, required: true }
   },
   data() {
@@ -29,11 +29,11 @@ export default {
   },
 
   activated() {
-    this.bus.$on("refresh", this.fetchStatistics);
+    bus.on("refresh", this.fetchStatistics);
   },
 
   deactivated() {
-    this.bus.$off("refresh", this.fetchStatistics);
+    bus.off("refresh", this.fetchStatistics);
   },
 
   mounted() {

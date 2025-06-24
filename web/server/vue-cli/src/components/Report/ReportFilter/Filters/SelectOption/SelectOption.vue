@@ -103,6 +103,7 @@
 </template>
 
 <script>
+import bus from "@/bus";
 import FilterToolbar from "../Layout/FilterToolbar";
 import {
   Items,
@@ -121,7 +122,6 @@ export default {
   },
   props: {
     title: { type: String, required: true },
-    bus: { type: Object, required: true },
     fetchItems: { type: Function, required: true },
     selectedItems: { type: Array, default: () => [] },
     multiple: { type: Boolean, default: true },
@@ -178,9 +178,9 @@ export default {
   },
 
   mounted() {
-    this.bus.$on("update", () => this.reloadItems = true);
+    bus.on("update", () => this.reloadItems = true);
 
-    this.bus.$on("select", predicate => {
+    bus.on("select", predicate => {
       const item = this.items.find(predicate);
       if (item &&
           this.prevSelectedItems.findIndex(i => i.id === item.id) === -1

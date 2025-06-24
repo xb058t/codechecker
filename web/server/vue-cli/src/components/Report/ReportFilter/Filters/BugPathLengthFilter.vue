@@ -90,8 +90,12 @@ export default {
   },
 
   methods: {
-    setMinBugPathLength(bugPathLength, updateUrl=true) {
-      if (this.$refs.form && !this.$refs.form.validate()) return;
+    setMinBugPathLength(bugPathLength, updateUrl = true) {
+      const form = this.$refs.form;
+
+      if (form && typeof form.validate === "function" && !form.validate()) {
+        return;
+      }
 
       this.minBugPathLength = bugPathLength;
       this.updateReportFilter();
@@ -101,8 +105,12 @@ export default {
       }
     },
 
-    setMaxBugPathLength(bugPathLength, updateUrl=true) {
-      if (this.$refs.form && !this.$refs.form.validate()) return;
+    setMaxBugPathLength(bugPathLength, updateUrl = true) {
+      const form = this.$refs.form;
+
+      if (form && typeof form.validate === "function" && !form.validate()) {
+        return;
+      }
 
       this.maxBugPathLength = bugPathLength;
       this.updateReportFilter();
