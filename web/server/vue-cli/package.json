@@ -27,8 +27,8 @@
   },
   "dependencies": {
     "@mdi/font": "^6.9.96",
-    "chart.js": "^2.9.4",
-    "chartjs-plugin-datalabels": "^0.7.0",
+    "chart.js": "^4.5.0",
+    "chartjs-plugin-datalabels": "^2.2.0",
     "codechecker-api": "file:../../api/js/codechecker-api-node/dist/codechecker-api-6.62.0.tgz",
     "codemirror": "^5.65.0",
     "date-fns": "^2.28.0",
@@ -39,6 +39,7 @@
     "semver": "^5.7.1",
     "splitpanes": "^3.1.0",
     "vue": "^3.5.14",
+    "vue-chartjs": "^4.1.2",
     "vue-router": "^4.5.1",
     "vuetify": "^3.8.8",
     "vuex": "^4.1.0"

@@ -41,9 +41,7 @@
           :get-value="getNumberOfActiveCheckers"
         >
           <template #help>
-            Number of checkers which found some report in the current
-            product.<br><br>
-
+            Number of checkers which found some report in the current product.<br><br>
             Every filter will affect this value.
           </template>
         </single-line-widget>
@@ -55,11 +53,8 @@
         <v-card flat>
           <v-card-title class="justify-center">
             Number of outstanding reports
-
             <tooltip-help-icon>
-              Shows the number of reports which were active in the last
-              <i>x</i> months/days.<br><br>
-
+              Shows the number of reports which were active in the last <i>x</i> months/days.<br><br>
               The following filters don't affect these values:
               <ul>
                 <li><b>Outstanding reports on a given date</b> filter.</li>
@@ -72,13 +67,12 @@
 
           <v-form ref="form" class="interval-selector">
             <v-text-field
-              :value="interval"
+              v-model="interval"
               class="interval align-center"
               type="number"
               hide-details
               dense
               solo
-              @input="setInterval"
             >
               <template v-slot:prepend>
                 Last
@@ -86,14 +80,13 @@
 
               <template v-slot:append-outer>
                 <v-select
-                  :value="resolution"
+                  v-model="resolution"
                   class="resolution"
                   :items="resolutions"
                   label="Resolution"
                   hide-details
                   dense
                   solo
-                  @input="setResolution"
                 />
               </template>
             </v-text-field>
@@ -102,15 +95,13 @@
               {{ intervalError }}
             </div>
           </v-form>
+
           <outstanding-reports-chart
             :bus="bus"
             :get-statistics-filters="getStatisticsFilters"
             :interval="interval"
             :resolution="resolution"
-            :styles="{
-              height: '400px',
-              position: 'relative'
-            }"
+            :styles="{ height: '400px', position: 'relative' }"
           />
         </v-card>
       </v-col>
@@ -127,123 +118,102 @@
   </v-container>
 </template>
 
-<script>
-import _ from "lodash";
-import { ccService, handleThriftError } from "@cc-api";
-import { DateMixin } from "@/mixins";
-import { BaseStatistics } from "@/components/Statistics";
-import TooltipHelpIcon from "@/components/TooltipHelpIcon";
+<script setup>
+import { ref, computed, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useStore } from 'vuex';
+import mitt from 'mitt';
+import _ from 'lodash';
 
-import Reports from "./Reports";
-import { ComponentSeverityStatistics } from "./ComponentSeverityStatistics";
-import FailedFilesDialog from "./FailedFilesDialog";
-import OutstandingReportsChart from "./OutstandingReportsChart";
-import SingleLineWidget from "./SingleLineWidget";
+import { ccService, handleThriftError } from '@cc-api';
+import TooltipHelpIcon from '@/components/TooltipHelpIcon.vue';
+import Reports from './Reports.vue';
+import ComponentSeverityStatistics from "./ComponentSeverityStatistics/ComponentSeverityStatistics.vue";
+import FailedFilesDialog from './FailedFilesDialog.vue';
+import OutstandingReportsChart from './OutstandingReportsChart.vue';
+import SingleLineWidget from './SingleLineWidget.vue';
 
-export default {
-  name: "Overview",
-  components: {
-    ComponentSeverityStatistics,
-    FailedFilesDialog,
-    OutstandingReportsChart,
-    Reports,
-    SingleLineWidget,
-    TooltipHelpIcon
-  },
-  mixins: [ BaseStatistics, DateMixin ],
-  data() {
-    const defaultInterval = "7";
+const namespace = 'statistics';
+const store = useStore();
+const route = useRoute();
+const router = useRouter();
+const bus = mitt();
 
-    const resolutions = [ "days", "weeks", "months", "years" ];
-    const defaultResolution = resolutions[0];
+const runIds = computed(() => store.getters[`${namespace}/getRunIds`]);
+const reportFilter = computed(() => store.getters[`${namespace}/getReportFilter`]);
 
+const resolutions = [ 'days', 'weeks', 'months', 'years' ];
+const defaultInterval = '7';
+const defaultResolution = resolutions[0];
 
-    let interval = this.$route.query["interval"];
-    if (this.validateIntervalValue(interval)) {
-      interval = defaultInterval;
-    }
+const interval = ref(route.query.interval || defaultInterval);
+const resolution = ref(
+  resolutions.includes(route.query.resolution) ? route.query.resolution : defaultResolution
+);
+const intervalError = ref(null);
 
-    let resolution = this.$route.query["resolution"];
-    if (!resolution || !resolutions.includes(resolution)) {
-      resolution = defaultResolution;
-    }
+watch(interval, _.debounce(val => {
+  validateAndUpdateInterval(val);
+}, 300));
 
-    return {
-      intervalError: null,
-      interval,
-      resolutions,
-      resolution
-    };
-  },
-  methods: {
-    validateIntervalValue(val) {
-      if (!val || isNaN(parseInt(val))) {
-        return "Number is required!";
-      }
-
-      if (parseInt(val) > 31) {
-        return "Interval value should between 1-31!";
-      }
-
-      return null;
-    },
-
-    setInterval: _.debounce(function (val) {
-      this.intervalError = this.validateIntervalValue(val);
-      if (this.intervalError) return;
-
-      this.interval = val;
-      this.updateUrl();
-
-      this.intervalError = null;
-    }, 300),
-
-    setResolution(val) {
-      this.resolution = val;
-      this.updateUrl();
-    },
-
-    updateUrl() {
-      const queryParams = Object.assign({}, this.$route.query, {
-        interval: this.interval,
-        resolution: this.resolution
-      });
-
-      this.$router.replace({ query: queryParams }).catch(() => {});
-    },
-
-    getNumberOfReports(runIds, reportFilter, cmpData) {
-      return new Promise(resolve => {
-        ccService.getClient().getRunResultCount(runIds, reportFilter, cmpData,
-          handleThriftError(res => {
-            resolve(res.toNumber());
-          }));
-      });
-    },
-
-    getNumberOfFailedFiles() {
-      return new Promise(resolve => {
-        ccService.getClient().getFailedFilesCount(this.runIds,
-          handleThriftError(res => {
-            resolve(res);
-          }));
-      });
-    },
-
-    getNumberOfActiveCheckers() {
-      const { runIds, reportFilter, cmpData } = this.getStatisticsFilters();
-      const limit = null;
-      const offset = 0;
-
-      return new Promise(resolve => {
-        ccService.getClient().getCheckerCounts(runIds, reportFilter, cmpData,
-          limit, offset, handleThriftError(res => {
-            resolve(res.length);
-          }));
-      });
-    }
+function validateAndUpdateInterval(val) {
+  const error = validateIntervalValue(val);
+  if (error) {
+    intervalError.value = error;
+    return;
   }
-};
+
+  intervalError.value = null;
+  updateUrl();
+}
+
+function validateIntervalValue(val) {
+  if (!val || isNaN(parseInt(val))) return 'Number is required!';
+  if (parseInt(val) > 31) return 'Interval value should be between 1-31!';
+  return null;
+}
+
+watch(resolution, updateUrl);
+
+function updateUrl() {
+  router.replace({
+    query: {
+      ...route.query,
+      interval: interval.value,
+      resolution: resolution.value
+    }
+  }).catch(() => {});
+}
+
+function getNumberOfReports(runIds, reportFilter, cmpData) {
+  return new Promise(resolve => {
+    ccService.getClient().getRunResultCount(runIds, reportFilter, cmpData,
+      handleThriftError(res => resolve(res.toNumber())));
+  });
+}
+
+function getNumberOfFailedFiles() {
+  return new Promise(resolve => {
+    ccService.getClient().getFailedFilesCount(runIds.value,
+      handleThriftError(res => resolve(res)));
+  });
+}
+
+function getNumberOfActiveCheckers() {
+  const { cmpData } = getStatisticsFilters();
+  return new Promise(resolve => {
+    ccService.getClient().getCheckerCounts(runIds.value, reportFilter.value, cmpData,
+      null, 0, handleThriftError(res => resolve(res.length)));
+  });
+}
+
+function getStatisticsFilters() {
+  return {
+    runIds: runIds.value,
+    reportFilter: reportFilter.value,
+    cmpData: null
+  };
+}
 </script>
 
 <style lang="scss" scoped>
@@ -271,6 +241,7 @@ export default {
     border: 1px dashed grey;
     padding: 6px;
   }
+
   .resolution {
     width: 120px;
   }

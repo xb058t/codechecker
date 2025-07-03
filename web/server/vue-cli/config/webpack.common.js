@@ -214,10 +214,10 @@ module.exports = {
     new ProvidePlugin({
       Buffer: [ "buffer", "Buffer" ],
     }),
-    new ESLintPlugin({
-      extensions: [ "js", "vue" ],
-      overrideConfigFile: "./.eslintrc.js",
-    }),
+    // new ESLintPlugin({
+    //   extensions: [ "js", "vue" ],
+    //   overrideConfigFile: "./.eslintrc.js",
+    // }),
     new VueLoaderPlugin(),
     new HTMLWebpackPlugin({
       showErrors: true,

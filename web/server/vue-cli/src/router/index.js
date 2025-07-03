@@ -56,7 +56,7 @@ const routes = [
         {
           path: "",
           name: "statistics",
-          redirect: "overview"
+          redirect: { name: "product-overview" }
         },
         {
           path: "overview",
