@@ -1,54 +1,31 @@
 <template>
   <v-container fluid class="pa-0">
     <analysis-info-dialog
-      :value.sync="analysisInfoDialog"
+      v-model="analysisInfoDialog"
       :report-id="reportId"
     />
 
     <v-row class="ma-0">
-      <v-col
-        class="py-0"
-        :cols="editorCols"
-      >
+      <v-col :cols="editorCols" class="py-0">
         <v-container fluid class="pa-0 mb-2">
           <v-row class="ma-0">
-            <v-col
-              cols="auto"
-              class="pa-0 mr-2"
-              align-self="center"
-            >
+            <v-col cols="auto" class="pa-0 mr-2" align-self="center">
               <show-report-info-dialog :value="report">
-                <template v-slot="{ on }">
-                  <report-info-button :on="on" />
+                <template #default="{ props }">
+                  <report-info-button v-bind="props" />
                 </template>
               </show-report-info-dialog>
             </v-col>
 
-            <v-col
-              cols="auto"
-              class="pa-0 mr-2"
-              align-self="center"
-            >
-              <analysis-info-btn
-                @click.native="openAnalysisInfoDialog"
-              />
+            <v-col cols="auto" class="pa-0 mr-2" align-self="center">
+              <analysis-info-btn @click="openAnalysisInfoDialog" />
             </v-col>
 
-            <v-col
-              cols="auto"
-              class="pa-0 mr-2"
-              align-self="center"
-            >
-              <set-cleanup-plan-btn
-                :value="report ? [report] : []"
-              />
+            <v-col cols="auto" class="pa-0 mr-2" align-self="center">
+              <set-cleanup-plan-btn :value="report ? [report] : []" />
             </v-col>
 
-            <v-col
-              cols="auto"
-              class="review-status-wrapper pa-0"
-              align-self="center"
-            >
+            <v-col cols="auto" class="review-status-wrapper pa-0" align-self="center">
               <v-container fluid class="pa-0">
                 <v-row class="px-4">
                   <v-col cols="auto" class="pa-0">
@@ -59,7 +36,6 @@
                       :on-confirm="confirmReviewStatusChange"
                     />
                   </v-col>
-
                   <v-col cols="auto" class="pa-0">
                     <v-menu
                       v-if="reviewData.comment"
@@ -68,8 +44,8 @@
                       :nudge-width="200"
                       offset-x
                     >
-                      <template v-slot:activator="{ on }">
-                        <v-btn class="review-status-message" icon v-on="on">
+                      <template #activator="{ props }">
+                        <v-btn class="review-status-message" icon v-bind="props">
                           <v-icon>mdi-message-text-outline</v-icon>
                         </v-btn>
                       </template>
@@ -79,25 +55,16 @@
                             <v-list-item-avatar>
                               <user-icon :value="reviewData.author" />
                             </v-list-item-avatar>
-
                             <v-list-item-content>
-                              <v-list-item-title>
-                                {{ reviewData.author }}
-                              </v-list-item-title>
-                              <v-list-item-subtitle>
-                                {{ reviewData.date | prettifyDate }}
-                              </v-list-item-subtitle>
+                              <v-list-item-title>{{ reviewData.author }}</v-list-item-title>
+                              <v-list-item-subtitle>{{ reviewData.date }}</v-list-item-subtitle>
                             </v-list-item-content>
                           </v-list-item>
                         </v-list>
-
                         <v-divider />
-
                         <v-list>
                           <v-list-item>
-                            <v-list-item-title>
-                              {{ reviewData.comment }}
-                            </v-list-item-title>
+                            <v-list-item-title>{{ reviewData.comment }}</v-list-item-title>
                           </v-list-item>
                         </v-list>
                       </v-card>
@@ -107,11 +74,7 @@
               </v-container>
             </v-col>
 
-            <v-col
-              cols="auto"
-              class="pa-0"
-              align-self="center"
-            >
+            <v-col cols="auto" class="pa-0" align-self="center">
               <v-checkbox
                 v-model="showArrows"
                 class="show-arrows mx-2 my-0 align-center justify-center"
@@ -123,22 +86,11 @@
 
             <v-spacer />
 
-            <v-col
-              cols="auto"
-              class="py-0 pr-0"
-              align-self="center"
-            >
-              <toggle-blame-view-btn
-                v-model="enableBlameView"
-                :disabled="!hasBlameInfo"
-              />
+            <v-col cols="auto" class="py-0 pr-0" align-self="center">
+              <toggle-blame-view-btn v-model="enableBlameView" :disabled="!hasBlameInfo" />
             </v-col>
 
-            <v-col
-              cols="auto"
-              class="py-0 pr-0"
-              align-self="center"
-            >
+            <v-col cols="auto" class="py-0 pr-0" align-self="center">
               <v-btn
                 class="comments-btn mx-2 mr-0"
                 color="primary"
@@ -147,12 +99,7 @@
                 :loading="loadNumOfComments"
                 @click="showComments = !showComments"
               >
-                <v-icon
-                  class="mr-1"
-                  small
-                >
-                  mdi-comment-multiple-outline
-                </v-icon>
+                <v-icon class="mr-1" small>mdi-comment-multiple-outline</v-icon>
                 Comments ({{ numOfComments }})
               </v-btn>
             </v-col>
@@ -160,92 +107,47 @@
         </v-container>
 
         <v-container fluid class="pa-0">
-          <v-row
-            id="editor-wrapper"
-            class="ma-0"
-          >
-            <v-progress-linear
-              v-if="loading"
-              indeterminate
-              class="mb-0"
-            />
+          <v-row id="editor-wrapper" class="ma-0" style="height: 600px; min-height: 600px;">
+            <v-progress-linear v-if="loading" indeterminate class="mb-0" />
 
             <v-col class="pa-0">
               <v-container fluid class="pa-0">
-                <v-row
-                  class="header pa-1 ma-0"
-                  justify="space-between"
-                >
-                  <v-col
-                    v-if="trackingBranch"
-                    class="file-path py-0"
-                    align-self="center"
-                    cols="auto"
-                  >
+                <v-row class="header pa-1 ma-0" justify="space-between">
+                  <v-col v-if="trackingBranch" class="file-path py-0" align-self="center" cols="auto">
                     <span
                       v-if="sourceFile"
                       :title="`Tracking branch: ${trackingBranch}`"
                       class="grey--text text--darken-3"
                     >
                       <v-icon class="mr-0" small>mdi-source-branch</v-icon>
-                      ({{ trackingBranch | truncate(20) }})
+                      ({{ trackingBranch }})
                     </span>
                   </v-col>
 
-                  <v-col
-                    v-if="trackingBranch"
-                    class="py-1 px-0"
-                    cols="auto"
-                  >
-                    <v-divider
-                      inset
-                      vertical
-                      :style="{ display: 'inline' }"
-                    />
+                  <v-col v-if="trackingBranch" class="py-1 px-0" cols="auto">
+                    <v-divider inset vertical :style="{ display: 'inline' }" />
                   </v-col>
 
-                  <v-col
-                    class="file-path py-0 pl-1"
-                    align-self="center"
-                  >
+                  <v-col class="file-path py-0 pl-1" align-self="center">
                     <copy-btn v-if="sourceFile" :value="sourceFile.filePath" />
-                    <span
-                      v-if="sourceFile"
-                      class="file-path"
-                      :title="`\u200E${sourceFile.filePath}`"
-                    >
+                    <span v-if="sourceFile" class="file-path" :title="sourceFile.filePath">
                       {{ sourceFile.filePath }}
                     </span>
                   </v-col>
 
-                  <v-col
-                    cols="auto"
-                    class="py-0"
-                    align-self="center"
-                  >
-                    <v-row
-                      align="center"
-                      class="text-no-wrap"
-                    >
+                  <v-col cols="auto" class="py-0" align-self="center">
+                    <v-row align="center" class="text-no-wrap">
                       Found in:
                       <select-same-report
                         class="select-same-report ml-2"
                         :report="report"
-                        @update:report="(reportId) =>
-                          $emit('update:report', reportId)"
+                        @update:report="$emit('update:report', $event)"
                       />
                     </v-row>
                   </v-col>
                 </v-row>
 
-                <v-row
-                  v-fill-height
-                  :class="[
-                    'editor',
-                    'ma-0',
-                    enableBlameView ? 'blame' : undefined
-                  ]"
-                >
+                <v-row class="editor ma-0" style="height: 100%;">
                   <textarea ref="editor" />
                 </v-row>
               </v-container>
@@ -253,755 +155,359 @@
           </v-row>
         </v-container>
       </v-col>
-      <v-col
-        v-if="showComments"
-        class="pa-0"
-        :cols="commentCols"
-      >
-        <report-comments
-          v-fill-height
-          class="comments"
-          :report="report"
-        />
+
+      <v-col v-if="showComments" class="pa-0" :cols="commentCols">
+        <report-comments class="comments" :report="report" />
       </v-col>
     </v-row>
   </v-container>
 </template>
-
-<script>
-import bus from "@/bus";
+<script setup>
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { useRoute } from "vue-router";
+import mitt from "mitt";
 import { createApp } from "vue";
 
+import _ from "lodash";
+import { format } from "date-fns";
 import CodeMirror from "codemirror";
 import "codemirror/lib/codemirror.css";
 import "codemirror/mode/clike/clike.js";
-
-// Import libaries for code highlights.
 import "codemirror/addon/scroll/annotatescrollbar.js";
 import "codemirror/addon/search/match-highlighter.js";
 import "codemirror/addon/search/matchesonscrollbar.js";
-
-// Import libaries to support code search.
 import "codemirror/addon/dialog/dialog.js";
 import "codemirror/addon/dialog/dialog.css";
 import "codemirror/addon/search/search.js";
 import "codemirror/addon/search/searchcursor.js";
 
-import _ from "lodash";
-
 import { jsPlumb } from "jsplumb";
 
-import { format } from "date-fns";
-
 import { ccService, handleThriftError } from "@cc-api";
-import {
-  Checker,
-  Encoding,
-  ExtendedReportDataType,
-  ReviewData
-} from "@cc/report-server-types";
+import { Checker, Encoding, ExtendedReportDataType, ReviewData } from "@cc/report-server-types";
 
-import { FillHeight } from "@/directives";
 import { AnalysisInfoDialog, CopyBtn } from "@/components";
 import { UserIcon } from "@/components/Icons";
-
-import ReportTreeKind from "@/components/Report/ReportTree/ReportTreeKind";
 import { SetCleanupPlanBtn } from "@/components/Report/CleanupPlan";
+import { ReportComments } from "@/components/Report/Comment";
+import ToggleBlameViewBtn from "@/components/Report/Git/ToggleBlameViewBtn.vue";
+import SelectReviewStatus from "@/components/Report/SelectReviewStatus.vue";
+import SelectSameReport from "@/components/Report/SelectSameReport.vue";
+import { ReportInfoButton, ShowReportInfoDialog } from "@/components/Report/ReportInfo";
+import ReportStepMessage from "@/components/Report/ReportStepMessage.vue";
+import ReportTreeKind from "@/components/Report/ReportTree/ReportTreeKind.js";
+import AnalysisInfoBtn from "@/components/Report/AnalysisInfoBtn.vue";
+import { FillHeight } from "@/directives";
 
-import AnalysisInfoBtn from "./AnalysisInfoBtn";
+const props = defineProps({ treeItem: { type: Object, default: null } });
+const emit = defineEmits(["update-review-data"]);
+const route = useRoute();
+const bus = mitt();
 
-import { ReportComments } from "./Comment";
-import GitBlameMixin from "./Git/GitBlame";
-import ToggleBlameViewBtn from "./Git/ToggleBlameViewBtn";
-import SelectReviewStatus from "./SelectReviewStatus";
-import SelectSameReport from "./SelectSameReport";
-import { ReportInfoButton, ShowReportInfoDialog } from "./ReportInfo";
+const report = ref(null);
+const editor = ref(null);
+const sourceFile = ref(null);
+const jsPlumbInstance = ref(null);
+const lineMarks = ref([]);
+const lineWidgets = ref([]);
+const showArrows = ref(true);
+const numOfComments = ref(null);
+const loadNumOfComments = ref(true);
+const showComments = ref(false);
+const commentCols = ref(3);
+const loading = ref(true);
+const annotation = ref(null);
+const selectedChecker = ref(null);
+const analysisInfoDialog = ref(false);
+const reportId = ref(null);
+const docUrl = ref(null);
+const enableBlameView = ref(route.query["view"] === "blame");
 
-import ReportStepMessage from "./ReportStepMessage";
+const trackingBranch = computed(() => sourceFile.value?.trackingBranch);
+const hasBlameInfo = computed(() => sourceFile.value?.hasBlameInfo);
+const editorCols = computed(() => showComments.value ? 9 : 12);
+const reviewData = computed(() => report.value?.reviewData ?? new ReviewData());
 
-// eslint-disable-next-line vue/one-component-per-file
-export default {
-  name: "Report",
-  components: {
-    AnalysisInfoBtn,
-    AnalysisInfoDialog,
-    CopyBtn,
-    ReportComments,
-    ReportInfoButton,
-    SelectReviewStatus,
-    SelectSameReport,
-    SetCleanupPlanBtn,
-    ShowReportInfoDialog,
-    ToggleBlameViewBtn,
-    UserIcon
-  },
-  directives: { FillHeight },
-  mixins: [ GitBlameMixin ],
-  props: {
-    treeItem: { type: Object, default: null }
-  },
+function confirmReviewStatusChange(comment, status, author) {
+  ccService.getClient().addReviewStatusRule(report.value.bugHash, status, comment, handleThriftError(() => {
+    reviewData.value.comment = comment;
+    reviewData.value.status = status;
+    reviewData.value.author = author;
+    reviewData.value.date = format(new Date(), "yyyy-MM-dd HH:mm:ss");
+    emit("update-review-data", reviewData.value, report.value.reportId);
+  }));
+}
 
-  emits: [ "update-review-data" ],
+function openAnalysisInfoDialog() {
+  reportId.value = report.value.reportId;
+  analysisInfoDialog.value = true;
+}
 
-  data() {
-    const enableBlameView =
-      this.$route.query["view"] === "blame";
+function jumpTo(line, column = 0) {
+  editor.value.scrollIntoView({ line, ch: column }, 150);
+}
 
-    return {
-      report: null,
-      step: null,
-      editor: null,
-      sourceFile: null,
-      jsPlumbInstance: null,
-      lineMarks: [],
-      lineWidgets: [],
-      showArrows: true,
-      numOfComments: null,
-      loadNumOfComments: true,
-      showComments: false,
-      commentCols: 3,
-      loading: true,
-      bus: mitt(),
-      annotation: null,
-      selectedChecker: null,
-      analysisInfoDialog: false,
-      reportId: null,
-      enableBlameView,
-      docUrl: null
-    };
-  },
+function updateAnnotation(line) {
+  annotation.value?.update([{ from: { line }, to: { line } }]);
+}
 
-  computed: {
-    trackingBranch() {
-      return this.sourceFile?.trackingBranch;
-    },
-    hasBlameInfo() {
-      return this.sourceFile?.hasBlameInfo;
-    },
+function onResize() {
+  annotation.value?.redraw();
+}
 
-    checkerName() {
-      return this.report ? this.report.checkerId : null;
-    },
+function findText(evt) {
+  if (evt.ctrlKey && evt.keyCode === 13)
+    editor.value.execCommand("findPersistentNext");
+  if (evt.ctrlKey && evt.keyCode === 70) {
+    evt.preventDefault();
+    editor.value.execCommand("findPersistent");
+    setTimeout(() => {
+      document.querySelector(".CodeMirror-search-field")?.focus();
+    }, 0);
+  }
+}
 
-    editorCols() {
-      const maxCols = 12;
+onMounted(() => {
+  document.addEventListener("keydown", findText);
+  window.addEventListener("resize", onResize);
 
-      return this.showComments
-        ? maxCols - this.commentCols
-        : maxCols;
-    },
+  nextTick(() => {
+    const editorEl = document.querySelector("textarea");
+     console.log("Editor element size:", editorEl?.offsetWidth, editorEl?.offsetHeight);
+    if (!editorEl) return;
 
-    reviewData() {
-      return this.report && this.report.reviewData
-        ? this.report.reviewData
-        : new ReviewData();
-    }
-  },
+    editor.value = CodeMirror.fromTextArea(editorEl, {
+      lineNumbers: true,
+      readOnly: true,
+      mode: "text/x-c++src",
+      gutters: ["CodeMirror-linenumbers", "bugInfo"],
+      extraKeys: {},
+      viewportMargin: 200,
+      highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true }
+    });
 
-  watch: {
-    async enableBlameView() {
-      if (this.enableBlameView) {
-        await this.loadBlameView();
-      } else {
-        await this.hideBlameView();
-      }
+    editor.value.setSize("100%", "100%");
+    editor.value.on("viewportChange", (cm, from, to) => drawLines(from, to));
+    annotation.value = editor.value.annotateScrollbar({ className: "scrollbar-bug-annotation" });
 
-      // Scroll to the current bug step item.
-      this.jumpTo(
-        this.treeItem.step?.startLine.toNumber() ||
-        this.treeItem.report.line.toNumber());
-    },
+    if (props.treeItem) init(props.treeItem);
 
-    treeItem() {
-      this.init(this.treeItem);
-    },
+    bus.on("jpmToPrevReport", attrs => {
+      loadReportStep(report.value, attrs);
+    });
 
-    showArrows() {
-      if (this.showArrows) {
-        this.drawBugPath();
-      } else {
-        this.clearLines();
-      }
-    },
+    bus.on("jpmToNextReport", attrs => {
+      loadReportStep(report.value, attrs);
+    });
 
-    report() {
-      this.loadNumOfComments = true;
-      ccService.getClient().getCommentCount(this.report.reportId,
-        handleThriftError(numOfComments => {
-          this.numOfComments = numOfComments;
-          this.loadNumOfComments = false;
-        }));
-    }
-  },
-
-  created() {
-    document.addEventListener("keydown", this.findText);
-    window.addEventListener("resize", this.onResize);
-  },
-
-  destoryed() {
-    document.removeEventListener("keydown", this.findText);
-    window.removeEventListener("resize", this.onResize);
-  },
-
-  mounted() {
-  const editorRef = this.$refs.editor;
-  if (!editorRef) return;
-
-  this.editor = CodeMirror.fromTextArea(editorRef, {
-    lineNumbers: true,
-    readOnly: true,
-    mode: "text/x-c++src",
-    gutters: [ "CodeMirror-linenumbers", "bugInfo" ],
-    extraKeys: {},
-    viewportMargin: 200,
-    highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true }
+    bus.on("showDocumentation", () => {
+      selectedChecker.value = new Checker({
+        analyzerName: report.value.analyzerName,
+        checkerId: report.value.checkerId
+      });
+    });
   });
+});
 
-  this.editor.setSize("100%", "100%");
+onBeforeUnmount(() => {
+  document.removeEventListener("keydown", findText);
+  window.removeEventListener("resize", onResize);
+});
 
-  this.editor.on("viewportChange", (cm, from, to) => {
-    this.drawLines(from, to);
-  });
+watch(enableBlameView, async () => {
+  if (enableBlameView.value) await loadBlameView();
+  else await hideBlameView();
 
-  this.annotation = this.editor.annotateScrollbar({
-    className: "scrollbar-bug-annotation"
-  });
+  const line = props.treeItem?.step?.startLine?.toNumber() || props.treeItem?.report?.line?.toNumber();
+  if (line) jumpTo(line);
+});
 
-  if (this.treeItem) {
-    this.init(this.treeItem);
+watch(() => props.treeItem, () => {
+  console.log("treeItem updated:", props.treeItem);
+  if (props.treeItem) init(props.treeItem);
+});
+
+watch(showArrows, () => {
+  showArrows.value ? drawBugPath() : clearLines();
+});
+
+watch(report, () => {
+  loadNumOfComments.value = true;
+  ccService.getClient().getCommentCount(report.value.reportId, handleThriftError(count => {
+    numOfComments.value = count;
+    loadNumOfComments.value = false;
+  }));
+});
+
+async function init(item) {
+  console.log("init start", item);
+  if (!item?.report) return;
+
+  loading.value = true;
+  clearLines();
+  report.value = item.report;
+
+  try {
+    console.log(`Source file data loaded: ${item.report.fileId}`);
+    await setSourceFileData(item.report.fileId);
+  } catch (err) {
+    console.error("Failed loading source file", err);
   }
 
-  bus.on("jpmToPrevReport", attrs => {
-    this.loadReportStep(this.report, {
-      stepId: attrs.$id,
-      fileId: attrs.fileId,
-      startLine: attrs.startLine
-    });
-  });
+   nextTick(() => {
+    try {
+      drawBugPath();
+      const step = item.step ?? item.report;
+      const line = step.startLine?.toNumber() ?? step.line?.toNumber();
+      const col = step.startCol?.toNumber() ?? step.column?.toNumber();
 
-  bus.on("jpmToNextReport", attrs => {
-    this.loadReportStep(this.report, {
-      stepId: attrs.$id,
-      fileId: attrs.fileId,
-      startLine: attrs.startLine
-    });
-  });
-
-  bus.on("showDocumentation", () => {
-    this.selectedChecker = new Checker({
-      analyzerName: this.report.analyzerName,
-      checkerId: this.report.checkerId
-    });
-  });
-},
-
-
-  methods: {
-    init(treeItem) {
-      this.loading = true;
-
-      if (treeItem.step) {
-        this.loadReportStep(treeItem.report, {
-          stepId: this.treeItem.id,
-          ...treeItem.step
-        });
-      } else if (treeItem.data) {
-        this.loadReportStep(treeItem.report, {
-          stepId: this.treeItem.id,
-          ...treeItem.data
-        });
-      } else {
-        this.loadReport(treeItem.report);
-      }
-    },
-
-    async loadReportStep(report, { stepId, fileId, startLine }) {
-      if (!this.report ||
-          !this.report.reportId.equals(report.reportId) ||
-          !this.sourceFile ||
-          !fileId.equals(this.sourceFile.fileId)
-      ) {
-        this.report = report;
-
-        await this.setSourceFileData(fileId);
-        await this.drawBugPath();
+      if (line) {
+        updateAnnotation(line - 1);
+        jumpTo(line - 1, col ? col - 1 : 0);
       }
 
-      const line = startLine.toNumber();
-      this.jumpTo(line, 0);
-      this.updateAnnotation(line);
-      this.highlightReportStep(stepId);
-
-      this.loading = false;
-    },
-
-    async loadReport(report) {
-      if (!report)
-        return;
-
-      this.report = report;
-
-      await this.setSourceFileData(report.fileId);
-      await this.drawBugPath();
-
-      const line = report.line.toNumber();
-      this.jumpTo(line, 0);
-      this.updateAnnotation(line);
-      this.highlightReport(report);
-
-      this.loading = false;
-    },
-
-    updateAnnotation(line) {
-      this.annotation.update([ { from: { line }, to: { line } } ]);
-    },
-
-    onResize: _.debounce(function () {
-      this.annotation.redraw();
-    }, 500),
-
-    findText(evt) {
-      if (evt.ctrlKey && evt.keyCode === 13) // Enter
-        this.editor.execCommand("findPersistentNext");
-
-      if (evt.ctrlKey && evt.keyCode === 70) { // Ctrl-f
-        evt.preventDefault();
-        evt.stopPropagation();
-
-        this.editor.execCommand("findPersistent");
-
-        // Set focus to the search input field.
-        setTimeout(() => {
-          const searchField =
-            document.getElementsByClassName("CodeMirror-search-field");
-
-          if (searchField.length)
-            searchField[0].focus();
-        }, 0);
-      }
-    },
-
-    highlightReportStep(stepId) {
-      this.highlightCurrentBubble(stepId);
-    },
-
-    highlightReport() {
-      this.lineWidgets.forEach(widget => {
-        const type = widget.node.getAttribute("type");
-        widget.node.classList.toggle("current", type === "error");
-      });
-    },
-
-    highlightCurrentBubble(id) {
-      this.lineWidgets.forEach(widget => {
-        const stepId = widget.node.getAttribute("step-id");
-        widget.node.classList.toggle("current", stepId === id);
-      });
-    },
-
-    async setSourceFileData(fileId) {
-      const sourceFile = await new Promise(resolve => {
-        ccService.getClient().getSourceFileData(fileId, true,
-          Encoding.DEFAULT, handleThriftError(sourceFile => {
-            resolve(sourceFile);
-          }));
-      });
-
-      this.sourceFile = sourceFile;
-      this.editor.setValue(sourceFile.fileContent);
-
-      if (this.enableBlameView) {
-        this.loadBlameView();
-      }
-    },
-
-    resetJsPlumb() {
-      if (this.jsPlumbInstance) {
-        this.jsPlumbInstance.reset();
-      }
-
-      const jsPlumbParentElement =
-        this.$el.querySelector(".CodeMirror-lines");
-      jsPlumbParentElement.style.position = "relative";
-
-      this.jsPlumbInstance = jsPlumb.getInstance({
-        Container : jsPlumbParentElement,
-        Anchor : [ "Perimeter", { shape : "Ellipse" } ],
-        Endpoint : [ "Dot", { radius: 1 } ],
-        PaintStyle : { stroke : "#a94442", strokeWidth: 2 },
-        Connector: [ "Bezier", { curviness: 10 } ],
-        ConnectionsDetachable : false,
-        ConnectionOverlays : [
-          [ "Arrow", { location: 1, length: 10, width: 8 } ]
-        ]
-      });
-    },
-
-    isSameFile (filePath) {
-      return filePath.fileId === this.sourceFile.fileId;
-    },
-
-    async drawBugPath() {
-      this.clearBubbles();
-      this.clearLines();
-
-      const reportId = this.report.reportId;
-      const reportDetail = await new Promise(resolve => {
-        ccService.getClient().getReportDetails(reportId,
-          handleThriftError(reportDetail => {
-            resolve(reportDetail);
-          }));
-      });
-
-      const errorChecker = new Checker({
-        analyzerName: this.report.analyzerName,
-        checkerId: this.report.checkerId
-      });
-      await new Promise(resolve => {
-        ccService.getClient().getCheckerLabels(
-          [ errorChecker ],
-          handleThriftError(labels => {
-            const docUrlLabels = labels[0].filter(
-              param => param.startsWith("doc_url")
-            );
-            this.docUrl = docUrlLabels.length ?
-              docUrlLabels[0].split("doc_url:")[1] : null;
-            resolve(this.docUrl);
-          })
-        );
-      });
-
-      const isSameFile = path => path.fileId.equals(this.sourceFile.fileId);
-
-      // Add extra path events (macro expansions, notes).
-      const extendedData = reportDetail.extendedData.map((data, index) => {
-        let kind = null;
-        switch (data.type) {
-        case ExtendedReportDataType.NOTE:
-          kind = ReportTreeKind.NOTE_ITEM;
-          break;
-        case ExtendedReportDataType.MACRO:
-          kind = ReportTreeKind.MACRO_EXPANSION_ITEM;
-          break;
-        default:
-          console.warn("Unhandled extended data type", data.type);
-        }
-
-        const id = ReportTreeKind.getId(kind, this.report, index);
-        return { ...data, $id: id, $message: data.message };
-      }).filter(isSameFile);
-
-      this.addExtendedData(extendedData);
-
-      // Add file path events.
-      let prevStep = null;
-      const events = reportDetail.pathEvents.map((event, index) => {
-        const id = ReportTreeKind.getId(ReportTreeKind.REPORT_STEPS,
-          this.report, index);
-
-        const currentStep = {
-          ...event,
-          $id: id,
-          $message: event.msg,
-          $index: index + 1,
-          $isResult: index === reportDetail.pathEvents.length - 1,
-          $prevStep: prevStep
-        };
-
-        if (prevStep) {
-          prevStep.$nextStep = currentStep;
-        }
-        prevStep = currentStep;
-
-        return currentStep;
-      }).filter(isSameFile);
-
-      this.addEvents(events);
-
-      // Add lines.
-      if (this.showArrows) {
-        const points = reportDetail.executionPath.filter(isSameFile);
-        this.addLines(points);
-      }
-    },
-
-    clearBubbles() {
-      this.editor.operation(() => {
-        this.lineWidgets.forEach(widget => widget.clear());
-      });
-
-      this.lineWidgets = [];
-    },
-
-    clearLines() {
-      this.editor.operation(() => {
-        this.lineMarks.forEach(mark => mark.clear());
-      });
-
-      this.lineMarks = [];
-      this.resetJsPlumb();
-    },
-
-    addLineWidget(element, props) {
-      const marginLeft =
-        this.editor.defaultCharWidth() * element.startCol + "px";
-
-      // eslint-disable-next-line vue/one-component-per-file
-      const app = createApp(ReportStepMessage, {
-        ...props,
-        id: element.$id,
-        value: element.$message,
-        marginLeft: marginLeft,
-        report: this.report
-      });
-      app.config.globalProperties.$vuetify = this.$vuetify;
-      const widget = app.mount(document.createElement("div"));
-
-      this.lineWidgets.push(this.editor.addLineWidget(
-        element.startLine.toNumber() - 1,
-        widget.$el
-      ));
-    },
-
-    addEvents(events) {
-      this.editor.operation(() => {
-        events.forEach(event => {
-          const type = event.$isResult
-            ? "error" : event.msg.indexOf(" (fixit)") > -1
-              ? "fixit" : "info";
-
-          const props = {
-            type: type,
-            index: event.$index,
-            prevStep: event.$prevStep,
-            nextStep: event.$nextStep,
-            docUrl: this.docUrl
-          };
-          this.addLineWidget(event, props);
-        });
-      });
-
-
-      //If the warning message or location is different than the
-      //the last bug path element, then we render the warning.
-
-      if (this.sourceFile.fileId.equals(this.report.fileId) &&
-          (events.length == 0 ||
-           this.report.checkerMsg !== events[events.length-1].msg ||
-           this.report.line.toNumber() !=
-             events[events.length-1].startLine.toNumber())
-      ){
-        const chkrmsg_data = { $id: 999,
-          $message:this.report.checkerMsg,
-          startLine:this.report.line, startCol:this.report.column };
-        const chrkmsg_props = { type: "error", index:"E", hideDocUrl:true };
-        this.addLineWidget(chkrmsg_data, chrkmsg_props);
-      }
-
-    },
-
-    addExtendedData(extendedData) {
-      this.editor.operation(() => {
-        extendedData.forEach(data => {
-          let type = null;
-          let value = null;
-          switch (data.type) {
-          case ExtendedReportDataType.NOTE:
-            type = "note";
-            value = "Note";
-            break;
-          case ExtendedReportDataType.MACRO:
-            type = "macro";
-            value = "Macro Expansion";
-            break;
-          default:
-            console.warn("Unhandled extended data type", data.type);
-          }
-
-          const props = { type: type, index: value };
-          this.addLineWidget(data, props);
-        });
-      });
-    },
-
-    addLines(points) {
-      this.editor.operation(() => {
-        points.forEach(p => {
-          const from = { line : p.startLine - 1, ch : p.startCol - 1 };
-          const to =   { line : p.endLine - 1,   ch : p.endCol.toNumber() };
-          const markerId = [ from.line, from.ch, to.line, to.ch ].join("_");
-
-          const opts = {
-            className: "checker-step",
-            attributes: {
-              markerid: markerId
-            }
-          };
-
-          this.lineMarks.push(this.editor.getDoc().markText(from, to, opts));
-        });
-      });
-
-      const range = this.editor.getViewport();
-      this.drawLines(range.from, range.to);
-    },
-
-    drawLines(from, to) {
-      if (!this.lineMarks.length) {
-        return;
-      }
-
-      this.resetJsPlumb();
-
-      let prev = null;
-      this.lineMarks
-        .filter(textMarker => {
-          let line = null;
-
-          // If not in viewport.
-          try {
-            line = textMarker.lines[0].lineNo();
-          } catch (ex) {
-            return false;
-          }
-
-          if (line < from || line >= to) {
-            return false;
-          }
-
-          return true;
-        })
-        .forEach(textMarker => {
-          const current = this.getDomToMarker(textMarker);
-
-          if (!current) {
-            return;
-          }
-
-          if (prev) {
-            this.jsPlumbInstance.connect({
-              source : prev,
-              target : current
-            });
-          }
-
-          prev = current;
-        });
-    },
-
-    getDomToMarker(textMarker) {
-      const selector = `[markerid='${textMarker.attributes.markerid}']`;
-      return this.$el.querySelector(selector);
-    },
-
-    jumpTo(line, column) {
-      this.editor.scrollIntoView({
-        line: line,
-        ch: column
-      }, 150);
-    },
-
-    confirmReviewStatusChange(comment, status, author) {
-      ccService.getClient().addReviewStatusRule(this.report.bugHash,
-        status, comment, handleThriftError(() => {
-          this.reviewData.comment = comment;
-          this.reviewData.status = status;
-          this.reviewData.author = author;
-          this.reviewData.date = format(new Date(), "yyyy-MM-dd HH:mm:ss");
-          this.$emit(
-            "update-review-data",
-            this.reviewData,
-            this.report.reportId
-          );
-        }));
-    },
-
-    openAnalysisInfoDialog() {
-      this.reportId = this.report.reportId;
-      this.analysisInfoDialog = true;
+      console.log("Bug path drawn");
+    } catch (e) {
+      console.error("Bug path error", e);
     }
+
+    loading.value = false;
+    console.log("init done");
+  });
+
+  loading.value = false;
+}
+
+async function setSourceFileData(fileId) {
+  console.log("Fetching source file with ID:", fileId);
+  const source = await new Promise(resolve => {
+    ccService.getClient().getSourceFileData(fileId, true, Encoding.DEFAULT,
+      handleThriftError(data => resolve(data))
+    );
+  });
+
+  sourceFile.value = source;
+  console.log("Set sourceFile:", source);
+  editor.value.setValue(source.fileContent || "");
+
+  if (enableBlameView.value) {
+    await loadBlameView();
   }
-};
+}
+
+
+async function loadBlameView() {
+  const blameInfo = await new Promise(resolve => {
+    ccService.getClient().getBlameInfo(sourceFile.value.fileId, handleThriftError(data => resolve(data)));
+  });
+
+  if (!blameInfo) return;
+
+  for (const [line, entry] of Object.entries(blameInfo)) {
+    const info = `${entry.commitHash} — ${entry.author} — ${entry.date}`;
+    editor.value.addLineClass(Number(line), "background", "blame-line");
+    editor.value.addLineWidget(Number(line), createLineWidget(info));
+  }
+}
+
+function createLineWidget(text) {
+  const el = document.createElement("div");
+  el.className = "blame-widget";
+  el.textContent = text;
+  return el;
+}
+
+function hideBlameView() {
+  if (!lineWidgets.value.length) return;
+
+  for (const widget of lineWidgets.value) {
+    widget.clear();
+  }
+
+  lineWidgets.value = [];
+  for (let i = 0; i < editor.value.lineCount(); ++i) {
+    editor.value.removeLineClass(i, "background", "blame-line");
+  }
+}
+
+function drawBugPath() {
+  if (!jsPlumbInstance.value) {
+    jsPlumbInstance.value = jsPlumb.getInstance({
+      Container: document.getElementById("editor-wrapper"),
+      PaintStyle: { stroke: "#f00", strokeWidth: 2 },
+      EndpointStyle: { fill: "#f00", radius: 4 },
+      Connector: ["Straight"]
+    });
+  }
+
+  const steps = report.value?.bugPathEvents ?? [];
+  const lines = steps.map(s => s.startLine?.toNumber() ?? s.line?.toNumber()).filter(Boolean);
+
+  clearLines();
+
+  for (const line of lines) {
+    const widget = document.createElement("div");
+    widget.className = "bug-path-marker";
+    editor.value.setGutterMarker(line - 1, "bugInfo", widget);
+    lineMarks.value.push(widget);
+  }
+}
+
+function clearLines() {
+  for (const marker of lineMarks.value) {
+    marker?.parentNode?.removeChild(marker);
+  }
+
+  lineMarks.value = [];
+  jsPlumbInstance.value?.deleteEveryConnection();
+}
+
 </script>
 
-<style lang="scss">
-.scrollbar-bug-annotation {
+<style scoped>
+#editor-wrapper {
+  height: 600px;
+  min-height: 400px;
+  position: relative;
+}
+
+.editor {
+  height: 100%;
+  min-height: 100%;
+  font-size: 14px;
+  background-color: #f9f9f9;
+  overflow: auto;
+}
+
+.CodeMirror {
+  height: 100% !important;
+  min-height: 400px;
+  width: 100%;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.bug-path-marker {
+  width: 10px;
+  height: 10px;
+  margin-top: 3px;
+  margin-left: 3px;
+  border-radius: 50%;
   background-color: red;
 }
-</style>
 
-<style lang="scss">
-#editor-wrapper {
-  border: 1px solid #d8dbe0;
-
-  .header {
-    background-color: "#f7f7f7";
-
-    .file-path {
-      font-family: monospace;
-      color: var(--v-grey-darken4);
-
-      max-width: 100%;
-      display: inline-block;
-      text-align: left;
-      vertical-align: middle;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      direction: rtl;
-
-      &::before {
-        content: '\200e';
-      }
-    }
-  }
-
-  .editor {
-    font-size: initial;
-    line-height: initial;
-
-    :deep(.CodeMirror-code > div:hover) {
-      background-color: lighten(grey, 42%);
-    }
-
-    &.blame :deep(.CodeMirror) {
-      line-height: 21px;
-
-      .CodeMirror-gutter-wrapper {
-        &, div, span {
-          height: 100%;
-        }
-      }
-    }
-
-    :deep(.cm-matchhighlight:not(.cm-searching)) {
-      background-color: lightgreen;
-    }
-
-    :deep(.CodeMirror-selection-highlight-scrollbar) {
-      background-color: green;
-    }
-  }
+.blame-line {
+  background-color: #f3f3f3 !important;
 }
 
-:deep(.checker-step) {
-  background-color: #eeb;
+.blame-widget {
+  font-size: 12px;
+  color: #666;
+  padding-left: 10px;
+  white-space: nowrap;
 }
 
-:deep(.blame-gutter) {
-  width: 400px;
-  background-color: #f7f7f7;
-}
-
-:deep(.report-step-msg.current) {
-  border: 2px dashed var(--v-primary-base) !important;
-  opacity: 1;
-  font-weight: bold;
-}
-
-:deep(.report-step-msg) {
-  opacity: 0.7;
-  font-weight: lighter;
+.scrollbar-bug-annotation {
+  background-color: red;
 }
 </style>

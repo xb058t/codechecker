@@ -263,13 +263,14 @@ export default {
           width: "100px"
         }
       ],
-      runs: []
+      runs: [],
+      endpoint: window.__cc_endpoint || "Default"
     };
   },
 
   beforeCreate() {
   const endpoint = this.$route.params.endpoint;
-  console.log("[RunList] emitting update for endpoint:", endpoint);
+  console.log("[RunList] using endpoint:", endpoint);
   eventHub.emit("update", endpoint);
   },
 
@@ -370,7 +371,7 @@ export default {
     },
 
     updateUrl(params) {
-      this.$route.replace({
+      this.$router.replace({
         query: {
           ...this.$route.query,
           ...params
@@ -414,7 +415,6 @@ export default {
 
     async runExpanded(run, limit=10, offset=0) {
       if (run.item.$history) {
-        // Use nextTick to wait while expanded array is updated.
         return this.$nextTick(this.updateExpandedUrlParam);
       }
 
@@ -479,19 +479,17 @@ export default {
     fetchRuns() {
       this.loading = true;
 
-    // Get the total number of runs.
     ccService.getClient().getRunCount(this.endpoint, this.runFilter,
       handleThriftError(totalItems => {
         this.totalItems = totalItems.toNumber();
       }));
 
-    // Get the runs.
     const limit = this.pagination.itemsPerPage;
     const offset = limit * (this.pagination.page - 1);
     const sortMode = this.getSortMode();
 
     return new Promise(resolve => {
-      ccService.getClient().getRunData(this.endpoint, this.runFilter,
+      ccService.getClient().getRunData(this.runFilter,
         limit, offset, sortMode, handleThriftError(runs => {
           this.runs = runs.map(r => {
             const version = this.prettifyCCVersion(r.codeCheckerVersion);
@@ -509,7 +507,7 @@ export default {
 
           this.loading = false;
           resolve(this.runs);
-        }));
+      }));
     });
   },
 

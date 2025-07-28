@@ -1,30 +1,15 @@
 <template>
-  <v-container
-    v-if="reportNotFound"
-    class="text-center"
-    fill-height
-  >
+  <v-container v-if="reportNotFound" class="text-center" fill-height>
     <v-row align="center" justify="center">
       <v-col class="error--text" cols="6">
-        <h1 class="display-2">
-          404 - Report not found!
-        </h1>
-
-        <v-alert
-          class="mt-4"
-          type="error"
-          dense
-          outlined
-          text
-        >
+        <h1 class="display-2">404 - Report not found!</h1>
+        <v-alert class="mt-4" type="error" dense outlined text>
           The report (
-          report ID: <i>{{ $router.currentRoute.query["report-id"] }}</i>,
-          report hash: <i>{{ $router.currentRoute.query["report-hash"] }}</i>,
-          file path:
-          <i>"{{ $router.currentRoute.query["report-filepath"] }}"</i>
+          report ID: <i>{{ $route.query['report-id'] }}</i>,
+          report hash: <i>{{ $route.query['report-hash'] }}</i>,
+          file path: <i>"{{ $route.query['report-filepath'] }}"</i>
           ) was removed from the database.
-
-          <span v-if="!$router.currentRoute.query['report-hash']">
+          <span v-if="!$route.query['report-hash']">
             Unfortunately, your hyperlink was copied from an older version of
             CodeChecker and the request does not contain the <i>report-hash</i>
             parameter which could be used as a fallback mechanism.
@@ -34,15 +19,9 @@
     </v-row>
   </v-container>
 
-  <splitpanes
-    v-else
-    class="default-theme"
-  >
+  <splitpanes v-else class="default-theme">
     <pane size="20">
-      <v-container
-        fluid
-        class="pa-0"
-      >
+      <v-container fluid class="pa-0">
         <v-row no-gutters>
           <v-col class="px-2">
             <v-btn
@@ -54,20 +33,13 @@
               class="mb-2"
               color="primary"
               :to="{ name: 'reports', query: {
-                ...$router.currentRoute.query,
+                ...$route.query,
                 'report-id': undefined,
                 'report-filepath': undefined,
-                ...(
-                  reportFilter.reportHash ? {} : { 'report-hash' : undefined }
-                )
+                ...(reportFilter.reportHash ? {} : { 'report-hash': undefined })
               }}"
             >
-              <v-icon
-                left
-                small
-              >
-                mdi-arrow-left
-              </v-icon>
+              <v-icon left small>mdi-arrow-left</v-icon>
               Back to reports
             </v-btn>
           </v-col>
@@ -101,7 +73,6 @@ import { Pane, Splitpanes } from "splitpanes";
 import "splitpanes/dist/splitpanes.css";
 
 import { mapState } from "vuex";
-
 import { ccService, handleThriftError } from "@cc-api";
 import {
   MAX_QUERY_SIZE,
@@ -124,6 +95,7 @@ export default {
     ReportTree
   },
   directives: { FillHeight },
+
   data() {
     return {
       report: null,
@@ -133,11 +105,12 @@ export default {
       reviewStatus: null
     };
   },
+
   computed: {
     ...mapState({
       runIds: state => state.report.runIds,
       reportFilter: state => state.report.reportFilter,
-      cmpData: state => state.report.cmpData,
+      cmpData: state => state.report.cmpData
     })
   },
 
@@ -163,15 +136,16 @@ export default {
     },
 
     loadReportById(reportId) {
-      return new Promise((res, rej) => {
+      return new Promise((resolve, reject) => {
         ccService.getClient().getReport(reportId,
           handleThriftError(reportData => {
             this.report = reportData;
-            res(true);
+            this.treeItem = { report: reportData };
+            resolve(true);
           }, err => {
             console.warn("Failed to get report for ID:", reportId);
             console.warn(err);
-            rej(err);
+            reject(err);
           }));
       });
     },
@@ -187,28 +161,37 @@ export default {
       });
 
       const filePath = this.$route.query["report-filepath"];
+
       const reportFilter = new ReportFilter({
         ...this.reportFilter,
         isUnique: false,
-        reportHash: [ reportHash ],
-        filePath: [ filePath ]
+        reportHash: reportHash ? [reportHash] : [],
+        filePath: filePath ? [filePath] : []
       });
 
-      ccService.getClient().getRunResults(this.runIds, limit, offset,
-        [ sortType ], reportFilter, this.cmpData, getDetails,
+      ccService.getClient().getRunResults(
+        this.runIds,
+        limit,
+        offset,
+        [sortType],
+        reportFilter,
+        this.cmpData,
+        getDetails,
         handleThriftError(reports => {
           if (reports.length) {
             this.report = reports[0];
+            this.treeItem = { report: reports[0] };
           } else {
             this.reportNotFound = true;
           }
-        }));
+        })
+      );
     },
 
     updateUrl() {
-      const reportId = this.report.reportId.toString();
+      const reportId = this.report.reportId?.toString();
       const currentReportId = this.$route.query["report-id"];
-      if (reportId !== currentReportId) {
+      if (reportId && reportId !== currentReportId) {
         this.$router.replace({
           query: {
             ...this.$route.query,
@@ -241,6 +224,8 @@ export default {
 .splitpanes.default-theme {
   .splitpanes__pane {
     background-color: inherit;
+    overflow-y: scroll;
+    overflow-x: auto;
   }
 }
 </style>

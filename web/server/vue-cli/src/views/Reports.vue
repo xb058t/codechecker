@@ -1,23 +1,23 @@
 <template>
-  <Splitpanes class="default-theme fill-height">
-    <Pane size="20" :style="{ 'min-width': '300px' }">
+  <splitpanes class="default-theme fill-height">
+    <pane size="20" :style="{ 'min-width': '300px' }">
       <report-filter
-        style="height: 100%;"
+        style="height: 100%"
         :namespace="namespace"
         :report-count="totalItems"
         @refresh="refresh"
       />
-    </Pane>
+    </pane>
 
-    <Pane>
+    <pane>
       <checker-documentation-dialog
-        v-model="checkerDocDialog"
+        v-model:value="checkerDocDialog"
         :checker="selectedChecker"
       />
 
       <v-data-table
         v-model="selected"
-        style="height: 100%;"
+        style="height: 100%"
         :headers="tableHeaders"
         :items="formattedReports"
         v-model:options="pagination"
@@ -66,7 +66,7 @@
                       />
                       <router-link
                         :to="{ name: 'report-detail', query: {
-                          ...$router.currentRoute.query,
+                          ...$route.query,
                           'report-id': report.reportId,
                           'report-hash': undefined
                         }}"
@@ -90,39 +90,32 @@
 
         <template #item.bugHash="{ item }">
           <span :title="item.bugHash">
-            {{ item.bugHash | truncate(10) }}
+            {{ truncate(item.bugHash, 10) }}
           </span>
         </template>
 
         <template #item.checkedFile="{ item }">
           <router-link
             :to="{ name: 'report-detail', query: {
-              ...$router.currentRoute.query,
-              'report-id': item.reportId ? item.reportId : undefined,
+              ...$route.query,
+              'report-id': item.reportId || undefined,
               'report-hash': item.bugHash,
-              'report-filepath': reportFilter.isUnique
-                ? `*${item.checkedFile}` : item.checkedFile
+              'report-filepath': reportFilter.isUnique ? `*${item.checkedFile}` : item.checkedFile
             }}"
             class="file-name"
           >
-            {{ item.checkedFile }}
-            <span v-if="item.line">@&nbsp;Line&nbsp;{{ item.line }}</span>
+            {{ item.checkedFile }}<span v-if="item.line">@ Line {{ item.line }}</span>
           </router-link>
         </template>
 
         <template #item.checkerId="{ item }">
-          <span
-            class="checker-name primary--text"
-            @click="openCheckerDocDialog(item.checkerId, item.analyzerName)"
-          >
+          <span class="checker-name primary--text" @click="openCheckerDocDialog(item.checkerId, item.analyzerName)">
             {{ item.checkerId }}
           </span>
         </template>
 
         <template #item.checkerMsg="{ item }">
-          <span class="checker-message">
-            {{ item.checkerMsg }}
-          </span>
+          <span class="checker-message">{{ item.checkerMsg }}</span>
         </template>
 
         <template #item.severity="{ item }">
@@ -155,16 +148,13 @@
           />
         </template>
       </v-data-table>
-    </Pane>
-  </Splitpanes>
+    </pane>
+  </splitpanes>
 </template>
 
 <script>
 import { Pane, Splitpanes } from "splitpanes";
-import "splitpanes/dist/splitpanes.css";
-
 import { mapGetters } from "vuex";
-
 import { ccService, handleThriftError } from "@cc-api";
 import { Checker, Order, SortMode, SortType } from "@cc/report-server-types";
 
@@ -175,9 +165,8 @@ import {
   ReviewStatusIcon,
   SeverityIcon
 } from "@/components/Icons";
-
 import CheckerDocumentationDialog from "@/components/CheckerDocumentationDialog";
-import ReportFilter from "@/components/Report/ReportFilter/ReportFilter.vue";
+import { ReportFilter } from "@/components/Report/ReportFilter";
 import { SetCleanupPlanBtn } from "@/components/Report/CleanupPlan";
 
 const namespace = "report";
@@ -185,13 +174,13 @@ const namespace = "report";
 export default {
   name: "Reports",
   components: {
-    CheckerDocumentationDialog,
     Splitpanes,
     Pane,
+    ReportFilter,
+    CheckerDocumentationDialog,
     DetectionStatusIcon,
     ReviewStatusIcon,
     SeverityIcon,
-    ReportFilter,
     SetCleanupPlanBtn
   },
   directives: { FillHeight },
@@ -200,7 +189,6 @@ export default {
   data() {
     const itemsPerPageOptions = [25, 50, 100];
     const query = this.$route.query;
-
     const page = parseInt(query["page"]) || 1;
     const itemsPerPage = parseInt(query["items-per-page"]) || itemsPerPageOptions[0];
     const sortBy = query["sort-by"];
@@ -228,23 +216,17 @@ export default {
       hasTestCase: true,
       hasChronologicalOrder: true,
       selected: [],
-      namespace: namespace,
+      namespace,
       pagination: {
-        page: page,
-        itemsPerPage: itemsPerPage,
+        page,
+        itemsPerPage,
         sortBy: sortBy ? [sortBy] : [],
-        sortDesc:
-          sortDesc !== undefined
-            ? [sortDesc === "true" || sortDesc === true]
-            : []
+        sortDesc: sortDesc !== undefined ? [sortDesc === "true"] : []
       },
-      footerProps: { itemsPerPageOptions: itemsPerPageOptions },
+      footerProps: { itemsPerPageOptions },
       totalItems: 0,
       loading: false,
-      runIdsUnwatch: null,
-      reportFilterUnwatch: null,
-      cmpDataUnwatch: null,
-      initalized: false,
+      initialized: false,
       checkerDocDialog: false,
       selectedChecker: null,
       expanded: []
@@ -259,7 +241,6 @@ export default {
     }),
 
     tableHeaders() {
-      if (!this.headers) return;
       return this.headers.filter(header => {
         if (header.value === "detectionStatus") return !this.reportFilter.isUnique;
         if (header.value === "data-table-expand") return this.reportFilter.isUnique;
@@ -274,9 +255,10 @@ export default {
       return this.reports.map(report => {
         const reportId = report.reportId ? report.reportId.toString() : "";
         const id = reportId + report.bugHash;
+
         const detectionStatus = this.detectionStatusFromCodeToString(report.detectionStatus);
-        const detectedAt = report.detectedAt ? this.$options.filters.prettifyDate(report.detectedAt) : null;
-        const fixedAt = report.fixedAt ? this.$options.filters.prettifyDate(report.fixedAt) : null;
+        const detectedAt = report.detectedAt ? this.prettifyDate(report.detectedAt) : null;
+        const fixedAt = report.fixedAt ? this.prettifyDate(report.fixedAt) : null;
 
         const detectionStatusTitle = [
           `Status: ${detectionStatus}`,
@@ -286,12 +268,11 @@ export default {
 
         return {
           ...report,
-          "$detectionStatusTitle": detectionStatusTitle,
-          "$id": id,
-          "sameReports": report.sameReports,
-          "timestamp": report.annotations["timestamp"],
-          "testcase": report.annotations["testcase"],
-          "chronological_order": report.annotations["chronological_order"]
+          $detectionStatusTitle: detectionStatusTitle,
+          $id: id,
+          timestamp: report.annotations["timestamp"],
+          testcase: report.annotations["testcase"],
+          chronological_order: report.annotations["chronological_order"]
         };
       });
     }
@@ -301,7 +282,7 @@ export default {
     pagination: {
       handler() {
         this.updateUrl();
-        if (this.initalized) this.fetchReports();
+        if (this.initialized) this.fetchReports();
       },
       deep: true
     },
@@ -314,24 +295,72 @@ export default {
     }
   },
 
+  mounted() {
+    this.refresh();
+  },
+
   methods: {
-    itemExpanded(expandedItem) {
-      if (expandedItem.item.sameReports) return;
-      const bugHash = expandedItem.item.bugHash;
-      ccService.getSameReports(bugHash).then(sameReports => {
-        expandedItem.item.sameReports = sameReports;
+    prettifyDate(timestamp) {
+      const date = new Date(timestamp * 1000);
+      return date.toLocaleString();
+    },
+
+    truncate(text, length) {
+      if (!text) return "";
+      return text.length <= length ? text : text.substring(0, length) + "…";
+    },
+
+    refresh() {
+      this.expanded = [];
+      ccService.getClient().getRunResultCount(
+        this.runIds,
+        this.reportFilter,
+        this.cmpData,
+        handleThriftError(res => {
+          this.totalItems = res.toNumber();
+        })
+      );
+      this.fetchReports();
+    },
+
+    fetchReports() {
+      this.loading = true;
+      const limit = this.pagination.itemsPerPage;
+      const offset = limit * (this.pagination.page - 1);
+      const sortType = this.getSortMode();
+
+      ccService.getClient().getRunResults(
+        this.runIds,
+        limit,
+        offset,
+        sortType,
+        this.reportFilter,
+        this.cmpData,
+        false,
+        handleThriftError(reports => {
+          this.reports = reports;
+          this.loading = false;
+          this.initialized = true;
+
+          reports.forEach(report => {
+            ccService.getSameReports(report.bugHash).then(sameReports => {
+              this.sameReports[report.bugHash] = [...new Set(sameReports.map(r => r.reviewData.status))];
+            });
+          });
+        })
+      );
+    },
+
+    itemExpanded({ item }) {
+      if (item.sameReports) return;
+      ccService.getSameReports(item.bugHash).then(sr => {
+        item.sameReports = sr;
       });
     },
 
     getSortMode() {
-      const sortBy = Array.isArray(this.pagination.sortBy)
-        ? this.pagination.sortBy[0]
-        : undefined;
-
-      const sortDesc = Array.isArray(this.pagination.sortDesc)
-        ? this.pagination.sortDesc[0]
-        : false;
-
+      const sortBy = this.pagination.sortBy?.[0];
+      const sortDesc = this.pagination.sortDesc?.[0];
       const ord = sortDesc ? Order.DESC : Order.ASC;
 
       const type = {
@@ -354,69 +383,19 @@ export default {
     },
 
     updateUrl() {
-      const pagination = this.pagination || {};
+      const query = {
+        ...this.$route.query,
+        "items-per-page": this.pagination.itemsPerPage !== this.footerProps.itemsPerPageOptions[0]
+          ? this.pagination.itemsPerPage
+          : undefined,
+        "page": this.pagination.page !== 1
+          ? this.pagination.page
+          : undefined,
+        "sort-by": this.pagination.sortBy?.[0],
+        "sort-desc": this.pagination.sortDesc?.[0]
+      };
 
-      const defaultItemsPerPage = this.footerProps.itemsPerPageOptions[0];
-      const itemsPerPage = pagination.itemsPerPage === defaultItemsPerPage
-        ? undefined
-        : pagination.itemsPerPage;
-
-      const page = pagination.page === 1
-        ? undefined
-        : pagination.page;
-
-      const sortBy = Array.isArray(pagination.sortBy)
-        ? pagination.sortBy[0]
-        : undefined;
-
-      const sortDesc = Array.isArray(pagination.sortDesc)
-      ? pagination.sortDesc[0]
-      : undefined;
-
-      this.$router.replace({
-        query: {
-          ...this.$route.query,
-          "items-per-page": itemsPerPage,
-          "page": page,
-          "sort-by": sortBy,
-          "sort-desc": sortDesc
-        }
-      }).catch(() => {});
-    },
-
-    refresh() {
-      this.expanded = [];
-      ccService.getClient().getRunResultCount(this.runIds, this.reportFilter, this.cmpData, handleThriftError(res => {
-        this.totalItems = res.toNumber();
-      }));
-
-      if (this.pagination.page !== 1 && this.initalized) {
-        this.pagination.page = 1;
-      } else {
-        this.fetchReports();
-      }
-    },
-
-    fetchReports() {
-      this.loading = true;
-      const limit = this.pagination.itemsPerPage;
-      const offset = limit * (this.pagination.page - 1);
-      const sortType = this.getSortMode();
-      const getDetails = false;
-
-      ccService.getClient().getRunResults(this.runIds, limit, offset, sortType,
-        this.reportFilter, this.cmpData, getDetails, handleThriftError(reports => {
-          this.reports = reports;
-          this.loading = false;
-          this.initalized = true;
-
-          reports.forEach(report => {
-            ccService.getSameReports(report.bugHash).then(sameReports => {
-              this.$set(this.sameReports, report.bugHash,
-                [...new Set(sameReports.map(r => r.reviewData.status))]);
-            });
-          });
-        }));
+      this.$router.replace({ query }).catch(() => {});
     }
   }
 };
@@ -428,7 +407,8 @@ export default {
 
   .splitpanes__pane {
     background-color: inherit;
-    overflow: auto;
+    overflow-y: scroll;
+    overflow-x: auto;
     padding: 8px;
   }
 }

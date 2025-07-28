@@ -1,85 +1,50 @@
-import mitt from "mitt";
 import {
   TBufferedTransport,
   TJSONProtocol,
   createXHRClient,
   createXHRConnection
 } from "thrift";
-
 import router from "@/router";
 import store from "@/store";
 import { ADD_ERROR, PURGE_AUTH } from "@/store/mutations.type";
 import authService from "./auth.service";
+import { eventHub } from "./eventHub";
 
-const host = window.location.hostname;
-const port = undefined;
-
-const eventHub = mitt();
+const host = process.env.VITE_CC_SERVER_HOST || "localhost";
+const port = parseInt(process.env.VITE_CC_SERVER_PORT, 10) || 8080;
+const api = process.env.VITE_CC_API_VERSION || "6.61";
 
 class BaseService {
-  constructor(serviceName, serviceClass, apiPrefix = "v6", isProductScoped = false) {
-  this._serviceName = serviceName;
-  this._serviceClass = serviceClass;
-  this._apiPrefix = apiPrefix;
-  this._isProductScoped = isProductScoped;
-
-  this._client = null;
-  this._currentEndpoint = window.__cc_endpoint || null;
-
-  eventHub.on("update", endpoint => {
-    console.log("[BaseService] update received:", endpoint);
-    this._currentEndpoint = endpoint;
-    window.__cc_endpoint = endpoint;
-    this._client = null;
-  });
-}
-
-getClient() {
-  if (this._isProductScoped) {
-    const endpoint = router.currentRoute.value.params?.endpoint;
-    if (!endpoint) {
-      console.warn("[BaseService] No endpoint found in route params!");
-    }
-    this._currentEndpoint = endpoint || "";
+  constructor(serviceName, serviceClass, version = api) {
+    this._serviceName = serviceName;
+    this._serviceClass = serviceClass;
+    this.version = version;
+    this._client = this.createClient();
+    eventHub.on("update", endpoint => {
+      this._client = this.createClient(endpoint);
+    });
   }
 
-  if (!this._client) {
-    this._client = this.createClient(this._currentEndpoint);
-  }
-  return this._client;
-}
-
-
-  getCurrentProduct() {
-    const endpoint = router.currentRoute.value.params?.endpoint;
-    console.log("TEST CURRENT:", endpoint);
-    return endpoint;
+  getClient() {
+    return this._client;
   }
 
-  createClient(productEndpoint = "") {
-    const prefix = this._isProductScoped && productEndpoint
-    ? `/${productEndpoint}/${this._apiPrefix}`
-    : `/${this._apiPrefix}`;
-    const finalPath = `${prefix}/${this._serviceName}`;
-    console.log("[Thrift] final path:", finalPath);
-
+  createClient(endpoint) {
+    const product = endpoint || window.__cc_endpoint || "Default";
+    const path = `/${product}/v${this.version}/${this._serviceName}`;
     const connection = createXHRConnection(host, port, {
       transport: TBufferedTransport,
       protocol: TJSONProtocol,
-      path: finalPath,
+      path,
       https: window.location.protocol === "https:"
     });
 
     const getXmlHttpRequestObject = connection.getXmlHttpRequestObject;
     connection.getXmlHttpRequestObject = function () {
       const xreq = getXmlHttpRequestObject();
-
       xreq.addEventListener("readystatechange", function () {
         if (this.readyState === 1) {
-          xreq.setRequestHeader(
-            "Authorization",
-            "Bearer " + authService.getToken()
-          );
+          xreq.setRequestHeader("Authorization", "Bearer " + authService.getToken());
         } else if (this.readyState === 4) {
           if (this.status === 504) {
             store.commit(ADD_ERROR, `Error ${this.status}: ${this.statusText}`);
@@ -88,7 +53,6 @@ getClient() {
           }
         }
       });
-
       return xreq;
     };
 
@@ -102,17 +66,14 @@ const handleThriftError = function (cb, onError) {
       if (cb) cb.apply(this, args);
       return;
     }
-
     if (err instanceof Error) {
       const msg = err.message;
       if (msg.includes("Error code 401:")) {
         store.commit(PURGE_AUTH);
-        router
-          .push({
-            name: "login",
-            query: { return_to: router.currentRoute.fullPath }
-          })
-          .catch(() => {});
+        router.push({
+          name: "login",
+          query: { return_to: router.currentRoute.fullPath }
+        }).catch(() => {});
         if (onError) onError(err);
         return;
       } else if (msg.match(/The product .* does not exist!/)) {
@@ -120,18 +81,16 @@ const handleThriftError = function (cb, onError) {
         return;
       }
     }
-
     if (onError) {
       onError(err);
     } else if (err instanceof Error) {
-      console.error("[Thrift Error]", err);
       store.commit(ADD_ERROR, err.message);
     }
   };
 };
 
 export {
-  eventHub,
+  BaseService,
   handleThriftError,
-  BaseService
+  eventHub
 };

@@ -1,197 +1,190 @@
 <template>
-  <v-expansion-panels multiple class="pa-2">
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        <v-btn
+  <VExpansionPanels multiple class="pa-2">
+    <VExpansionPanel>
+      <VExpansionPanelTitle>
+        <VBtn
           color="primary"
           variant="tonal"
           size="small"
           @click="clearAllFilters"
         >
           CLEAR ALL FILTERS
-        </v-btn>
+        </VBtn>
 
-        <v-spacer />
+        <VSpacer />
 
-        <report-count :value="reportCount" />
-      </v-expansion-panel-title>
-    </v-expansion-panel>
+        <ReportCount :value="reportCount" />
+      </VExpansionPanelTitle>
+    </VExpansionPanel>
 
-    <v-list-item>
-      <v-checkbox
+    <VListItem>
+      <VCheckbox
         v-model="showUnique"
         label="Unique reports"
-        @change="updateUrl"
+        @update:model-value="updateUrl"
         density="compact"
       />
-    </v-list-item>
+    </VListItem>
 
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        BASELINE
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <baseline-run-filter
+    <VExpansionPanel>
+      <VExpansionPanelTitle>BASELINE</VExpansionPanelTitle>
+      <VExpansionPanelText>
+        <BaselineRunFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-        <baseline-open-reports-date-filter
+        <BaselineOpenReportsDateFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-      </v-expansion-panel-text>
-    </v-expansion-panel>
+      </VExpansionPanelText>
+    </VExpansionPanel>
 
-    <v-expansion-panel v-if="showCompareTo">
-      <v-expansion-panel-title>
-        COMPARE TO
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <compared-to-run-filter
+    <VExpansionPanel v-if="showCompareTo">
+      <VExpansionPanelTitle>COMPARE TO</VExpansionPanelTitle>
+      <VExpansionPanelText>
+        <ComparedToRunFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-        <compared-to-open-reports-date-filter
+        <ComparedToOpenReportsDateFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-        <compared-to-diff-type-filter
+        <ComparedToDiffTypeFilter
           v-if="showDiffType"
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-      </v-expansion-panel-text>
-    </v-expansion-panel>
+      </VExpansionPanelText>
+    </VExpansionPanel>
 
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        FILE PATH
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <file-path-filter
+    <VExpansionPanel>
+      <VExpansionPanelTitle>FILE PATH</VExpansionPanelTitle>
+      <VExpansionPanelText>
+        <FilePathFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-      </v-expansion-panel-text>
-    </v-expansion-panel>
+      </VExpansionPanelText>
+    </VExpansionPanel>
 
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        CHECKER NAME
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <checker-name-filter
+    <VExpansionPanel>
+      <VExpansionPanelTitle>CHECKER NAME</VExpansionPanelTitle>
+      <VExpansionPanelText>
+        <CheckerNameFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-      </v-expansion-panel-text>
-    </v-expansion-panel>
+      </VExpansionPanelText>
+    </VExpansionPanel>
 
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        SEVERITY
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <severity-filter
+    <VExpansionPanel>
+      <VExpansionPanelTitle>SEVERITY</VExpansionPanelTitle>
+      <VExpansionPanelText>
+        <SeverityFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-      </v-expansion-panel-text>
-    </v-expansion-panel>
+      </VExpansionPanelText>
+    </VExpansionPanel>
 
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        REPORT STATUS
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <report-status-filter
+    <VExpansionPanel>
+      <VExpansionPanelTitle>REPORT STATUS</VExpansionPanelTitle>
+      <VExpansionPanelText>
+        <ReportStatusFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-      </v-expansion-panel-text>
-    </v-expansion-panel>
+      </VExpansionPanelText>
+    </VExpansionPanel>
 
-    <v-expansion-panel v-if="showReviewStatus">
-      <v-expansion-panel-title>
-        REVIEW STATUS
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <review-status-filter
+    <VExpansionPanel v-if="showReviewStatus">
+      <VExpansionPanelTitle>REVIEW STATUS</VExpansionPanelTitle>
+      <VExpansionPanelText>
+        <ReviewStatusFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-      </v-expansion-panel-text>
-    </v-expansion-panel>
+      </VExpansionPanelText>
+    </VExpansionPanel>
 
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        DETECTION STATUS
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <detection-status-filter
+    <VExpansionPanel>
+      <VExpansionPanelTitle>DETECTION STATUS</VExpansionPanelTitle>
+      <VExpansionPanelText>
+        <DetectionStatusFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-      </v-expansion-panel-text>
-    </v-expansion-panel>
+      </VExpansionPanelText>
+    </VExpansionPanel>
 
-    <v-expansion-panel>
-      <v-expansion-panel-title>
-        OTHER FILTERS
-      </v-expansion-panel-title>
-      <v-expansion-panel-text>
-        <analyzer-name-filter
+    <VExpansionPanel>
+      <VExpansionPanelTitle>OTHER FILTERS</VExpansionPanelTitle>
+      <VExpansionPanelText>
+        <AnalyzerNameFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-        <source-component-filter
+        <SourceComponentFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-        <cleanup-plan-filter
+        <CleanupPlanFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-        <checker-message-filter
+        <CheckerMessageFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-        <report-hash-filter
+        <ReportHashFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-        <bug-path-length-filter
+        <BugPathLengthFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-        <testcase-filter
+        <TestcaseFilter
           ref="filters"
           :namespace="namespace"
           @update:url="updateUrl"
         />
-      </v-expansion-panel-text>
-    </v-expansion-panel>
-  </v-expansion-panels>
+      </VExpansionPanelText>
+    </VExpansionPanel>
+  </VExpansionPanels>
 </template>
 
 <script>
+import {
+  VExpansionPanels,
+  VExpansionPanel,
+  VExpansionPanelTitle,
+  VExpansionPanelText,
+  VBtn,
+  VSpacer,
+  VCheckbox,
+  VListItem
+} from "vuetify/components";
+
 import ClearAllFilters from "./ClearAllFilters.vue";
 import ReportCount from "./ReportCount.vue";
 import UniqueFilter from "./Filters/UniqueFilter.vue";
@@ -217,6 +210,14 @@ import TestcaseFilter from "./Filters/TestcaseFilter.vue";
 export default {
   name: "ReportFilter",
   components: {
+    VExpansionPanels,
+    VExpansionPanel,
+    VExpansionPanelTitle,
+    VExpansionPanelText,
+    VBtn,
+    VSpacer,
+    VCheckbox,
+    VListItem,
     ClearAllFilters,
     ReportCount,
     UniqueFilter,
@@ -245,6 +246,11 @@ export default {
     showReviewStatus: { type: Boolean, default: true },
     showDiffType: { type: Boolean, default: true },
     reportCount: { type: Number, required: true }
+  },
+  data() {
+    return {
+      showUnique: false
+    };
   },
   methods: {
     updateUrl() {

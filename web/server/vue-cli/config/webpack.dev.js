@@ -49,6 +49,16 @@ module.exports = merge(common, {
         changeOrigin: true,
         secure: false
       },
+      "/Default": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        secure: false
+      },
+      "/v6.61": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        secure: false
+      },
       "/v6.62": {
         target: "http://localhost:8001",
         changeOrigin: true,
