@@ -1,29 +1,27 @@
 const CopyPlugin = require('copy-webpack-plugin');
 const HTMLWebpackPlugin = require('html-webpack-plugin');
-const {VueLoaderPlugin} = require('vue-loader');
-const {DefinePlugin, ProvidePlugin} = require('webpack');
+const { VueLoaderPlugin } = require('vue-loader');
+const { DefinePlugin, ProvidePlugin } = require('webpack');
 const ESLintPlugin = require('eslint-webpack-plugin');
-const {join} = require('path');
+const { join } = require('path');
 
 const codeCheckerApi = require('codechecker-api/package.json');
-const apiVersion = codeCheckerApi.version
-  .split(".")
-  .slice(0, 2)
-  .join(".");
+const apiVersion = codeCheckerApi.version.split('.').slice(0, 2).join('.');
 
 const helpers = require('./helpers');
 
-function sassLoaderOptions(indentedSyntax = false) {
+function sassLoaderOptions(indentedSyntax=false) {
   return {
-    implementation: require("sass"),
-    additionalData:
-      '@import "~@/variables.scss"' + (indentedSyntax ? "" : ";"),
+    implementation: require('sass'),
+    additionalData:'@import "~@/variables.scss"' + (indentedSyntax ? "" : ";"),
     sassOptions: { indentedSyntax },
   };
 }
 
 function cssLoaderOptions() {
-  return { esModule: false };
+  return { 
+    esModule: false 
+  };
 }
 
 module.exports = {
@@ -113,71 +111,68 @@ module.exports = {
     rules: [
       {
         test: /\.js$/,
-        loader: "babel-loader",
-        exclude: [ /node_modules\/(?!vuetify)/ ],
+        loader: 'babel-loader',
+        exclude: [/node_modules\/(?!vuetify)/],
         options: {
           presets: [
-            [
-              "@babel/preset-env",
-              {
+            ["@babel/preset-env",{
                 useBuiltIns: "usage",
                 corejs: 3,
-              },
-            ],
+              },],
           ],
         },
       },
       {
         test: /\.vue$/,
-        loader: "vue-loader",
+        loader: 'vue-loader',
       },
       {
-        test: /\.css$/,
+        test:/\.css$/,
         use: [
-          "vue-style-loader",
+          'vue-style-loader',
           {
-            loader: "css-loader",
+            loader: 'css-loader',
             options: cssLoaderOptions(),
           },
         ],
       },
       {
-        test: /\.sass$/,
+        test:/\.sass$/,
         use: [
-          "vue-style-loader",
+          'vue-style-loader',
           {
-            loader: "css-loader",
+            loader: 'css-loader',
             options: cssLoaderOptions(),
           },
           {
-            loader: "sass-loader",
+            loader: 'sass-loader',
             options: sassLoaderOptions(true),
           },
         ],
       },
       {
-        test: /\.scss$/,
+        test:/\.scss$/,
         use: [
           "vue-style-loader",
           {
-            loader: "css-loader",
+            loader: 'css-loader',
             options: cssLoaderOptions(),
           },
           {
-            loader: "sass-loader",
+            loader: 'sass-loader',
             options: sassLoaderOptions(false),
           },
         ],
       },
       {
-        test: /\.(png|jpe?g|gif)$/i,
+        test:/\.(png|jpe?g|gif)$/i,
         use: [
           {
-            loader: "file-loader",
+            loader: 'file-loader',
             options: {
               esModule: false,
               name() {
-                return process.env.NODE_ENV === "development"
+                return process.env.NODE_ENV === 'development'
                   ? "[path][name].[ext]"
                   : "[contenthash].[ext]";
               },
@@ -189,10 +184,10 @@ module.exports = {
         test: /\.(woff2?|eot|ttf|otf)$/,
         use: [
           {
-            loader: "file-loader",
+            loader: 'file-loader',
             options: {
               limit: 10000,
-              name: "[name].[contenthash:7].[ext]",
+              name: '[name].[contenthash:7].[ext]',
             },
           },
         ],
@@ -201,7 +196,7 @@ module.exports = {
         test: /\.(md)$/,
         use: [
           {
-            loader: "raw-loader",
+            loader: 'raw-loader',
           },
         ],
       },
@@ -209,10 +204,10 @@ module.exports = {
   },
   plugins: [
     new DefinePlugin({
-      "process.env.CC_API_VERSION": JSON.stringify(apiVersion),
+      'process.env.CC_API_VERSION': JSON.stringify(apiVersion),
     }),
     new ProvidePlugin({
-      Buffer: [ "buffer", "Buffer" ],
+      Buffer: [ 'buffer', 'Buffer' ],
     }),
     // new ESLintPlugin({
     //   extensions: [ "js", "vue" ],
@@ -222,23 +217,23 @@ module.exports = {
     new HTMLWebpackPlugin({
       showErrors: true,
       cache: true,
-      title: "CodeChecker viewer",
-      favicon: helpers.root("src", "assets", "favicon.ico"),
-      template: helpers.root("src", "index.html"),
+      title: 'CodeChecker viewer',
+      favicon: helpers.root('src', 'assets', 'favicon.ico'),
+      template: helpers.root('src', 'index.html')
     }),
     new CopyPlugin({
       patterns: [
         {
-          from: helpers.root("src", "assets", "userguide", "images"),
-          to: helpers.root("dist", "images"),
+          from: helpers.root('src', 'assets', 'userguide', 'images'),
+          to: helpers.root('dist', 'images')
         },
         {
-          from: helpers.root("src", "browsersupport.js"),
-          to: helpers.root("dist"),
+          from: helpers.root('src', 'browsersupport.js'),
+          to: helpers.root('dist')
         },
         {
-          from: helpers.root("src", "static.js"),
-          to: helpers.root("dist"),
+          from: helpers.root('src', 'static.js'),
+          to: helpers.root('dist')
         },
       ],
     }),

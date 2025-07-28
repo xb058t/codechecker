@@ -25,10 +25,10 @@ module.exports = {
 
   "show documentation" (browser) {
     const reportDetailPage = browser.page.reportDetail();
-    reportDetailPage.expect.element("@showDocumentationBtn")
+    reportDetailPage.expect.element('@showDocumentationBtn')
       .to.be.present.before(5000, false);
 
-    reportDetailPage.click("@showDocumentationBtn");
+    reportDetailPage.click('@showDocumentationBtn');
 
     browser.windowHandles(windowObj => {
       if (windowObj.value.length > 1) {

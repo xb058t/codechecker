@@ -64,19 +64,20 @@ function runCommand(cmd) {
     stdio: "inherit",
     env: {
       ...process.env,
-      CC_PASS_FILE: PASSWORD_FILE,
-      CC_SESSION_FILE: SESSION_FILE
+      "CC_PASS_FILE": PASSWORD_FILE,
+      "CC_SESSION_FILE": SESSION_FILE
     }
   });
 }
 
-async function login(username) {
+async function login (username) {
   const cmd = [
     "CodeChecker", "cmd", "login", username,
     "--url", url
   ].join(" ");
 
   console.log("Login command: ", cmd);
+
   runCommand(cmd);
 }
 
@@ -87,6 +88,7 @@ function logout() {
   ].join(" ");
 
   console.log("Logout command: ", cmd);
+
   runCommand(cmd);
 }
 
@@ -100,6 +102,7 @@ function addProduct({ endpoint, name, description }) {
   ].join(" ");
 
   console.log("Add product command: ", cmd);
+  
   runCommand(cmd);
 }
 

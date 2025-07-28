@@ -35,18 +35,18 @@ const bugTreeCommands = {
 
   getTreeNodeSelector(
     outstandingStateIndex, severityIndex, bugIndex, stepIndex) {
-    const selectors = [ this.selector, ">", this.node(outstandingStateIndex) ];
+    const selectors = [ this.selector, ">", this.node(outstandingStateIndex)];
     if (severityIndex !== undefined) {
       selectors.push(
-        ...[ ">", this.elements.childNode.selector, this.node(severityIndex) ]);
+        ...[ ">", this.elements.childNode.selector, this.node(severityIndex)]);
 
       if (bugIndex !== undefined) {
         selectors.push(
-          ...[ ">", this.elements.childNode.selector, this.node(bugIndex) ]);
+          ...[ ">", this.elements.childNode.selector, this.node(bugIndex)]);
 
         if (stepIndex !== undefined) {
           selectors.push(
-            ...[ ">", this.elements.childNode.selector, this.node(stepIndex) ]);
+            ...[ ">", this.elements.childNode.selector, this.node(stepIndex)]);
         }
       }
     }

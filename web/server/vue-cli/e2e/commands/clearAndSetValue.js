@@ -9,7 +9,7 @@ module.exports.command = function (selector, value, section) {
     // is visible before clicking it.
     .pause(100)
     .click(selector)
-    .getValue(selector, function (/* unused result */) {
+    .getValue(selector, function (result) {
       section.setValue(selector, [
         this.Keys.CONTROL,
         "a",
