@@ -9,7 +9,7 @@
         id="edit-announcement-btn"
         color="primary"
         class="mr-2"
-        v-on="on"
+        v-bind="on"
       >
         <v-icon left>
           mdi-bullhorn-outline

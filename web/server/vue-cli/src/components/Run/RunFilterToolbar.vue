@@ -243,19 +243,20 @@ export default {
     ]),
 
     initByUrl() {
-      const runName = this.$router.currentRoute.query["run"];
+      const route = this.$router.currentRoute.value;
+      const runName = route.query["run"];
       if (runName)
         this.setRunName(runName);
 
-      const runTag = this.$router.currentRoute.query["run-tag"];
+      const runTag = route.query["run-tag"];
       if (runTag)
         this.setRunTag(runTag);
 
-      const storedAfter = this.$router.currentRoute.query["stored-after"];
+      const storedAfter = route.query["stored-after"];
       if (storedAfter)
         this.setStoredAfter(new Date(storedAfter));
 
-      const storedBefore = this.$router.currentRoute.query["stored-before"];
+      const storedBefore = route.query["stored-before"];
       if (storedBefore)
         this.setStoredBefore(new Date(storedBefore));
     },

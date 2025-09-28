@@ -1,11 +1,12 @@
 const CopyPlugin = require('copy-webpack-plugin');
 const HTMLWebpackPlugin = require('html-webpack-plugin');
 const { VueLoaderPlugin } = require('vue-loader');
-const VuetifyLoaderPlugin = require('vuetify-loader/lib/plugin');
+// const VuetifyLoaderPlugin = require('vuetify-loader/lib/plugin');
 const { DefinePlugin, ProvidePlugin } = require('webpack');
 const ESLintPlugin = require('eslint-webpack-plugin');
 
 const { join } = require('path');
+const path = require('path');
 
 const codeCheckerApi = require('codechecker-api/package.json');
 const apiVersion = codeCheckerApi.version.split('.').slice(0, 2).join('.');
@@ -49,6 +50,9 @@ module.exports = {
     unsafeCache: true,
     extensions: ['.js', '.vue'],
     alias: {
+      vue: '@vue/compat',
+      vue$: '@vue/compat',
+      'vuetify/es5': 'vuetify/lib',
       '@': helpers.root('src'),
       '@cc-api': helpers.root('src', 'services', 'api'),
       '@cc/auth': join('codechecker-api', 'lib', 'codeCheckerAuthentication.js'),
@@ -62,7 +66,7 @@ module.exports = {
       '@cc/report-server-types': join('codechecker-api', 'lib', 'report_server_types.js'),
       '@cc/shared-types': join('codechecker-api', 'lib', 'codechecker_api_shared_types.js'),
       'thrift': join('thrift', 'lib', 'nodejs', 'lib', 'thrift', 'browser.js'),
-      'Vuetify': join('vuetify', 'lib', 'components')
+      // 'Vuetify': join('vuetify', 'lib', 'components')
     }
   },
   module: {
@@ -70,7 +74,11 @@ module.exports = {
       {
         test: /\.js$/,
         loader: 'babel-loader',
-        exclude: [/node_modules\/(?!vuetify)/],
+        include: [
+          path.resolve(__dirname, 'src'),
+          path.resolve(__dirname, 'node_modules/vuetify')
+        ],
+        // exclude: [/node_modules\/(?!vuetify)/],
         options: {
           presets: [
             ["@babel/preset-env", {
@@ -82,7 +90,16 @@ module.exports = {
       },
       {
         test: /\.vue$/,
-        loader: 'vue-loader'
+        use: {
+          loader: 'vue-loader',
+          options: {
+            // compilerOptions: {
+            //   compatConfig: {
+            //     MODE: 2
+            //   }
+            // }
+          }
+        }
       },
       {
         test: /\.css$/,
@@ -164,17 +181,30 @@ module.exports = {
   },
   plugins: [
     new DefinePlugin({
-      'process.env.CC_API_VERSION': JSON.stringify(apiVersion)
+      'process.env.CC_API_VERSION': JSON.stringify(apiVersion),
+      __VUE_OPTIONS_API__: JSON.stringify(true),
+      __VUE_PROD_DEVTOOLS__: JSON.stringify(false),
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: JSON.stringify(false)
     }),
     new ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],
     }),
-    new ESLintPlugin({
-      extensions: ['js', 'vue'],
-      overrideConfigFile: './.eslintrc.js'
-    }),
+    // new ESLintPlugin({
+    //   extensions: ['js', 'vue'],
+    //   overrideConfigFile: './.eslintrc.js'
+    // }),
     new VueLoaderPlugin(),
-    new VuetifyLoaderPlugin(),
+    // new VuetifyLoaderPlugin({
+      // match (originalTag, context) {
+    //     const { kebabTag, camelTag } = context
+    //     if (kebabTag.startsWith('v-')) {
+    //       return [
+    //         camelTag,
+    //         `import ${camelTag} from 'vuetify/lib/components/${camelTag}'`
+    //       ]
+    //     }
+    //   }
+    // }),
     new HTMLWebpackPlugin({
       showErrors: true,
       cache: true,

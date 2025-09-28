@@ -1,7 +1,7 @@
 <template>
   <v-container fluid class="pa-0">
     <analysis-info-dialog
-      :value.sync="analysisInfoDialog"
+      v-model="analysisInfoDialog"
       :report-id="reportId"
     />
 
@@ -17,8 +17,8 @@
               class="pa-0 mr-2"
               align-self="center"
             >
-              <show-report-info-dialog :value="report">
-                <template v-slot="{ on }">
+              <show-report-info-dialog v-model="report">
+                <template #default="{ on }">
                   <report-info-button :on="on" />
                 </template>
               </show-report-info-dialog>
@@ -30,7 +30,7 @@
               align-self="center"
             >
               <analysis-info-btn
-                @click.native="openAnalysisInfoDialog"
+                @click="openAnalysisInfoDialog"
               />
             </v-col>
 
@@ -66,28 +66,26 @@
                       content-class="review-status-message-dialog"
                       :close-on-content-click="false"
                       :nudge-width="200"
-                      offset-x
+                      location="end"
                     >
-                      <template v-slot:activator="{ on }">
-                        <v-btn class="review-status-message" icon v-on="on">
+                      <template #activator="{ props }">
+                        <v-btn v-bind="props" class="review-status-message" icon>
                           <v-icon>mdi-message-text-outline</v-icon>
                         </v-btn>
                       </template>
-                      <v-card>
+                      <v-card variant="flat">
                         <v-list>
                           <v-list-item>
-                            <v-list-item-avatar>
+                            <template #prepend>
                               <user-icon :value="reviewData.author" />
-                            </v-list-item-avatar>
+                            </template>
 
-                            <v-list-item-content>
-                              <v-list-item-title>
-                                {{ reviewData.author }}
-                              </v-list-item-title>
-                              <v-list-item-subtitle>
-                                {{ reviewData.date | prettifyDate }}
-                              </v-list-item-subtitle>
-                            </v-list-item-content>
+                            <v-list-item-title>
+                              {{ reviewData.author }}
+                            </v-list-item-title>
+                            <v-list-item-subtitle>
+                              {{ prettifyDate(reviewData.date) }}
+                            </v-list-item-subtitle>
                           </v-list-item>
                         </v-list>
 
@@ -116,8 +114,8 @@
                 v-model="showArrows"
                 class="show-arrows mx-2 my-0 align-center justify-center"
                 label="Show arrows"
-                dense
-                :hide-details="true"
+                density="compact"
+                hide-details
               />
             </v-col>
 
@@ -142,14 +140,14 @@
               <v-btn
                 class="comments-btn mx-2 mr-0"
                 color="primary"
-                outlined
-                small
+                variant="outlined"
+                size="small"
                 :loading="loadNumOfComments"
                 @click="showComments = !showComments"
               >
                 <v-icon
                   class="mr-1"
-                  small
+                  size="small"
                 >
                   mdi-comment-multiple-outline
                 </v-icon>
@@ -185,10 +183,10 @@
                     <span
                       v-if="sourceFile"
                       :title="`Tracking branch: ${trackingBranch}`"
-                      class="grey--text text--darken-3"
+                      class="text-grey-darken-3"
                     >
-                      <v-icon class="mr-0" small>mdi-source-branch</v-icon>
-                      ({{ trackingBranch | truncate(20) }})
+                      <v-icon class="mr-0" size="small">mdi-source-branch</v-icon>
+                      ({{ truncate(trackingBranch, 20) }})
                     </span>
                   </v-col>
 
@@ -200,7 +198,6 @@
                     <v-divider
                       inset
                       vertical
-                      :style="{ display: 'inline' }"
                     />
                   </v-col>
 
@@ -269,6 +266,7 @@
 </template>
 
 <script>
+import mitt from "mitt";
 import Vue from "vue";
 
 import CodeMirror from "codemirror";
@@ -360,7 +358,7 @@ export default {
       showComments: false,
       commentCols: 3,
       loading: true,
-      bus: new Vue(),
+      bus: mitt(),
       annotation: null,
       selectedChecker: null,
       analysisInfoDialog: false,
@@ -574,6 +572,22 @@ export default {
             searchField[0].focus();
         }, 0);
       }
+    },
+    prettifyDate(date) {
+      if (!date) return "";
+      try {
+        return format(new Date(date), "yyyy-MM-dd HH:mm:ss");
+      } catch (e) {
+        console.warn("Invalid date:", date);
+        return date;
+      }
+    },
+
+    truncate(value, length = 20) {
+      if (!value) return "";
+      return value.length > length
+        ? value.substring(0, length) + "…"
+        : value;
     },
 
     highlightReportStep(stepId) {

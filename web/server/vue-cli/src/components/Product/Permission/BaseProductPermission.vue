@@ -63,7 +63,7 @@
       flat
       outlined
       class="mt-4"
-      @keyup.native.enter="addNewAuthRight"
+      @keyup.enter="addNewAuthRight"
     >
       <template v-slot:append>
         <v-btn

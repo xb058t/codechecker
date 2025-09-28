@@ -5,7 +5,7 @@
     <v-toolbar
       v-if="search"
       class="pa-2"
-      dense
+      density="compact"
       flat
     >
       <v-text-field
@@ -24,43 +24,38 @@
 
     <v-list
       class="pa-2 overflow-y-auto"
-      dense
-      :max-height="300"
+      density="compact"
+      max-height="300"
     >
-      <v-list-item-group
+      <v-item-group
         v-if="searchTxt && search.regexLabel"
         v-model="selectedRgx"
-        active-class="white--text"
-        lighten-4
+        class="white--text"
       >
         <v-list-item
           class="my-1 regex-label"
           :value="searchTxt"
-          dark
         >
-          <template v-slot:default="{ active }">
-            <v-list-item-action class="ma-1 mr-5">
+          <template #default="{ active }">
+            <div class="ma-1 mr-5">
               <v-checkbox
-                :input-value="active"
+                :model-value="active"
                 color="#28a745"
               />
-            </v-list-item-action>
+            </div>
 
-            <v-list-item-content>
-              <v-list-item-title>
-                {{ search.regexLabel }}: {{ searchTxt }}
-              </v-list-item-title>
-            </v-list-item-content>
+            <div class="py-1">
+              <strong>{{ search.regexLabel }}: {{ searchTxt }}</strong>
+            </div>
           </template>
         </v-list-item>
-      </v-list-item-group>
+      </v-item-group>
 
-      <v-list-item-group
+      <v-item-group
         v-if="items.length"
         v-model="selected"
         :multiple="multiple"
-        active-class="light-blue--text"
-        lighten-4
+        class="light-blue--text"
       >
         <v-hover
           v-for="item in formattedItems"
@@ -72,25 +67,23 @@
             class="my-1"
             :disabled="!multiple && selected === item.id"
           >
-            <template v-slot:default="{ active }">
-              <v-list-item-action class="ma-1 mr-5">
+            <template #default="{ active }">
+              <div class="ma-1 mr-5">
                 <v-checkbox
-                  :input-value="active"
+                  :model-value="active"
                   color="#28a745"
                 />
-              </v-list-item-action>
+              </div>
 
-              <v-list-item-icon class="ma-1 mr-2">
+              <div class="ma-1 mr-2">
                 <slot name="icon" :item="item" />
-              </v-list-item-icon>
+              </div>
 
-              <v-list-item-content>
-                <slot name="title" :item="item">
-                  <v-list-item-title :title="item.title">
-                    {{ item.title }}
-                  </v-list-item-title>
-                </slot>
-              </v-list-item-content>
+              <slot name="title" :item="item">
+                <div class="font-weight-medium" :title="item.title">
+                  {{ item.title }}
+                </div>
+              </slot>
 
               <slot
                 name="prepend-count"
@@ -101,21 +94,21 @@
               <v-chip
                 v-if="item.count !== undefined"
                 color="#878d96"
-                outlined
-                small
+                variant="outlined"
+                size="small"
               >
                 {{ item.count }}
               </v-chip>
             </template>
           </v-list-item>
         </v-hover>
-      </v-list-item-group>
+      </v-item-group>
 
       <v-list-item v-else>
         <slot name="no-items">
-          <v-list-item-icon>
+          <div class="ma-1 mr-2">
             <v-icon>mdi-help-rhombus-outline</v-icon>
-          </v-list-item-icon>
+          </div>
           No items
         </slot>
       </v-list-item>
@@ -133,24 +126,24 @@
       <v-spacer />
 
       <v-btn
-        text
+        variant="text"
         class="cancel-btn"
         color="grey"
         @click="$emit('cancel')"
       >
-        <v-icon left>
+        <v-icon start>
           mdi-close-circle-outline
         </v-icon>
         Cancel
       </v-btn>
 
       <v-btn
-        text
+        variant="text"
         class="apply-btn"
         color="primary"
         @click="apply"
       >
-        <v-icon left>
+        <v-icon start>
           mdi-check-circle-outline
         </v-icon>
         Apply
@@ -168,7 +161,7 @@ export default {
     items: { type: Array, required: true },
     format: { type: Function, default: null },
     limit: { type: Number, default: null },
-    selectedItems: { type: Array, required: true },
+    selectedItems: { type: Array, default: () => [] },
     multiple: { type: Boolean, default: true },
     search: { type: Object, default: null },
   },
@@ -202,7 +195,7 @@ export default {
           // in the currently selected ids list.
           .concat(this.items.filter(item => selectedIds.includes(item.id)));
 
-        this.$emit("select", selectedItems);
+        this.$emit("update:selectedItems", selectedItems);
       }
     },
 
@@ -223,7 +216,7 @@ export default {
           selectedItems.push({ id: value, title: value });
         }
 
-        this.$emit("select", selectedItems);
+        this.$emit("update:selectedItems", selectedItems);
       }
     }
   },

@@ -22,6 +22,12 @@ module.exports = merge(common, {
     filename: '[name].[contenthash].js',
     publicPath: "/"
   },
+  resolve: {
+    alias: {
+      vue$: '@vue/compat',
+      vue: '@vue/compat'
+    }
+  },
   devtool: 'inline-source-map',
   devServer: {
     port: 8080,
@@ -35,7 +41,6 @@ module.exports = merge(common, {
           from: /^\/[^\/]+(\/.*\.(js|css|png|jpe?g|gif|ico|woff2?|eot|ttf|otf))$/i,
           to: function (ctx) {
             if (ctx.match) return ctx.match[1];
-
             return "/index.html";
           }
         },

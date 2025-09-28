@@ -9,13 +9,12 @@
   >
     <template v-slot:activator="{ on, attrs }">
       <v-text-field
+        v-bind="attrs"
         :value="date"
         label="Due date"
         append-icon="mdi-calendar"
         readonly
         outlined
-        v-bind="attrs"
-        v-on="on"
       />
     </template>
 

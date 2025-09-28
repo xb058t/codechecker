@@ -97,7 +97,7 @@
           'review-status': reviewStatusFromCodeToString(item.status)
         }}"
       >
-        {{ item.reportHash | truncate(10) }}
+        {{ truncate(item.reportHash, 10) }}
       </router-link>
     </template>
 
@@ -110,7 +110,7 @@
         <v-icon left>
           mdi-calendar-range
         </v-icon>
-        {{ item.date | prettifyDate }}
+        {{ prettifyDate(item.date) }}
       </v-chip>
     </template>
 
@@ -155,6 +155,8 @@ import RemoveFilteredRulesDialog from "./RemoveFilteredRulesDialog";
 import ReviewStatusLabel from "./ReviewStatusLabel";
 import ReviewStatusRuleFilter from "./ReviewStatusRuleFilter";
 
+import mitt from "mitt";
+
 export default {
   name: "ListSourceComponents",
   components: {
@@ -194,7 +196,7 @@ export default {
       editDialog: false,
       removeDialog: false,
       removeFilteredRuleDialog: false,
-      bus: new Vue(),
+      bus: mitt(),
       headers: [
         {
           text: "Report hash",
@@ -356,6 +358,23 @@ export default {
     removeReviewStatusRule(rule) {
       this.selected = rule;
       this.removeDialog = true;
+    },
+    truncate(value, length = 10) {
+      if (!value) return "";
+      return value.length > length ? value.substring(0, length) + "…" : value;
+    },
+
+    prettifyDate(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (isNaN(date)) return value;
+      return date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
     }
   }
 };

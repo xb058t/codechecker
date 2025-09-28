@@ -7,15 +7,15 @@
     <v-timeline
       v-for="(group, date) in formattedHistories"
       :key="date"
-      dense
-      clipped
+      density="compact"
+      side="end"
     >
       <v-timeline-item
         class="pb-2"
         icon="mdi-calendar-month"
+        dot-color="accent"
+        size="small"
         fill-dot
-        color="accent"
-        small
       >
         <strong>{{ date }}</strong>
       </v-timeline-item>
@@ -25,34 +25,34 @@
         :key="history.id.toNumber()"
         class="run-history pb-2"
         icon="mdi-history"
+        dot-color="primary"
+        size="small"
         fill-dot
-        color="primary"
-        small
       >
         <v-row justify="space-between">
           <v-col class="pa-0 mr-5" cols="auto" align-self="center">
             <router-link
               :to="{ name: 'reports',
-                     query: {
-                       ...defaultReportFilterValues,
-                       run: history.runName,
-                       'run-tag': history.id
-                     }
+                    query: {
+                      ...defaultReportFilterValues,
+                      run: history.runName,
+                      'run-tag': history.id
+                    }
               }"
               class="date mr-2"
             >
-              <strong>{{ history.time | prettifyDate }}</strong>
+              <strong>{{ prettifyDate(history.time) }}</strong>
             </router-link>
           </v-col>
           <v-col class="pa-0" align-self="center" cols="auto">
-            <v-list-item two-line>
-              <v-list-item-content>
-                <v-list-item-title>
+            <v-list-item lines="two">
+              <div class="d-flex flex-column">
+                <div class="d-flex align-center mb-1">
                   <v-chip
                     color="success"
-                    outlined
+                    variant="outlined"
                   >
-                    <v-icon left>
+                    <v-icon start>
                       mdi-account
                     </v-icon>
                     {{ history.user }}
@@ -62,9 +62,9 @@
                     v-if="history.versionTag"
                     :value="history.versionTag"
                   />
-                </v-list-item-title>
+                </div>
 
-                <v-list-item-subtitle>
+                <div class="d-flex align-center text-body-2">
                   <show-statistics-btn
                     :extra-queries="{
                       run: history.runName,
@@ -72,28 +72,28 @@
                     }"
                   />
 
-                  <v-divider class="mx-2 d-inline" inset vertical />
+                  <v-divider class="mx-2 d-inline" vertical />
 
                   <analysis-info-btn
-                    @click.native="openAnalysisInfoDialog(
+                    @click="openAnalysisInfoDialog(
                       run.runId, history.id)"
                   />
 
-                  <v-divider class="mx-2 d-inline" inset vertical />
+                  <v-divider class="mx-2 d-inline" vertical />
 
                   <span :title="history.codeCheckerVersion">
                     v{{ history.$codeCheckerVersion }}
                   </span>
 
-                  <v-divider class="mx-2 d-inline" inset vertical />
+                  <v-divider class="mx-2 d-inline" vertical />
 
                   <analyzer-statistics-btn
                     v-if="Object.keys(history.analyzerStatistics).length"
                     :value="history.analyzerStatistics"
-                    @click.native="openAnalyzerStatisticsDialog(null, history)"
+                    @click="openAnalyzerStatisticsDialog(null, history)"
                   />
-                </v-list-item-subtitle>
-              </v-list-item-content>
+                </div>
+              </div>
             </v-list-item>
           </v-col>
 
@@ -113,6 +113,7 @@
                   :value="history.id.toNumber()"
                   class="ma-0 pa-0"
                   hide-details
+                  density="compact"
                 />
 
                 <v-checkbox
@@ -120,6 +121,7 @@
                   :value="history.id.toNumber()"
                   class="ma-0 pa-0"
                   hide-details
+                  density="compact"
                 />
               </v-row>
             </v-container>
@@ -165,6 +167,20 @@ export default {
     return {
       defaultReportFilterValues
     };
+  },
+  methods: {
+    prettifyDate(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (isNaN(date)) return value;
+      return date.toLocaleString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
   },
   computed: {
     baselineTags: {

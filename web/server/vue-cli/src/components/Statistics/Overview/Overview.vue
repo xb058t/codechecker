@@ -23,7 +23,7 @@
           <template #value="{ value }">
             <failed-files-dialog>
               <template #default="{ on }">
-                <span class="num-of-failed-files" v-on="on">
+                <span class="num-of-failed-files" v-bind="on">
                   {{ value }}
                 </span>
               </template>

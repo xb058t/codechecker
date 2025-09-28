@@ -9,16 +9,14 @@
       v-if="commit"
       :close-on-content-click="false"
       :close-delay="200"
-      :nudge-width="200"
       :max-width="400"
       open-on-hover
-      offset-x
+      location="end"
     >
-      <template v-slot:activator="{ on }">
-        <component
-          :is="'span'"
+      <template #activator="{ props }">
+        <span
           class="blame-commit-info"
-          v-on="on"
+          v-bind="props"
         >
           <span class="git-avatar mx-1">
             <v-avatar
@@ -38,13 +36,13 @@
           <div class="git-time" :title="commit.committedDateTime">
             on {{ date }}
           </div>
-        </component>
+        </span>
       </template>
 
       <v-card>
-        <v-list>
-          <v-list-item three-line>
-            <v-list-item-avatar>
+        <v-list lines="three">
+          <v-list-item>
+            <template #prepend>
               <v-avatar
                 :color="strToColor(commit.author.name)"
               >
@@ -52,33 +50,33 @@
                   {{ avatarLabel }}
                 </span>
               </v-avatar>
-            </v-list-item-avatar>
+            </template>
 
-            <v-list-item-content>
-              <v-list-item-title class="font-weight-bold">
-                {{ commit.summary }}
-              </v-list-item-title>
+            <v-list-item-title class="font-weight-bold">
+              {{ commit.summary }}
+            </v-list-item-title>
 
-              <v-list-item-subtitle
-                :title="commit.hexsha"
+            <v-list-item-subtitle :title="commit.hexsha">
+              <a
+                :href="remoteCommitUrl"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <a :href="remoteCommitUrl" target="_blank">
-                  <span class="text--blue font-weight-bold">
-                    #{{ hexsha }}
-                  </span>
-                </a>
-                <span :title="`Tracking branch: ${trackingBranch}`">
-                  ({{ trackingBranch | truncate(20) }})
+                <span class="text-primary font-weight-bold">
+                  #{{ hexsha }}
                 </span>
-              </v-list-item-subtitle>
+              </a>
+              <span :title="`Tracking branch: ${trackingBranch}`">
+                ({{ truncate(trackingBranch, 20) }})
+              </span>
+            </v-list-item-subtitle>
 
-              <v-list-item-subtitle>
-                <span class="text--primary">
-                  {{ commit.author.name }}
-                </span>
-                ({{ commit.author.email }})
-              </v-list-item-subtitle>
-            </v-list-item-content>
+            <v-list-item-subtitle>
+              <span class="text-primary">
+                {{ commit.author.name }}
+              </span>
+              ({{ commit.author.email }})
+            </v-list-item-subtitle>
           </v-list-item>
         </v-list>
 
@@ -121,19 +119,29 @@ export default {
   },
   computed: {
     remoteCommitUrl() {
-      return this.remoteUrl?.replace("$commit", this.commit.hexsha);
+      return this.commit && this.remoteUrl
+        ? this.remoteUrl.replace("$commit", this.commit.hexsha)
+        : null;
     },
     avatarLabel() {
-      return this.commit.author.name.charAt(0).toUpperCase();
+      return this.commit ? this.commit.author.name.charAt(0).toUpperCase() : "";
     },
     date() {
-      return format(this.commit.committedDateTime, "yyyy-MM-dd");
+      return this.commit ? format(this.commit.committedDateTime, "yyyy-MM-dd") : "";
     },
     message() {
-      return this.commit.message.replace(/(?:\r\n|\r|\n)/g, "<br>");
+      return this.commit
+        ? this.commit.message.replace(/(?:\r\n|\r|\n)/g, "<br>")
+        : "";
     },
     hexsha() {
-      return this.commit.hexsha.substring(0, 8);
+      return this.commit ? this.commit.hexsha.substring(0, 8) : "";
+    }
+  },
+  methods: {
+    truncate(value, length) {
+      if (!value) return "";
+      return value.length > length ? value.substring(0, length) + "…" : value;
     }
   }
 };

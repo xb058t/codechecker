@@ -41,7 +41,7 @@
             icon
             small
             class="settings-btn"
-            v-on="on"
+            v-bind="on"
           >
             <v-icon>mdi-cog</v-icon>
           </v-btn>
@@ -104,6 +104,9 @@
 
 <script>
 import FilterToolbar from "../Layout/FilterToolbar";
+
+import mitt from "mitt";
+
 import {
   Items,
   ItemsSelected,
@@ -178,9 +181,9 @@ export default {
   },
 
   mounted() {
-    this.bus.$on("update", () => this.reloadItems = true);
+    this.bus.on("update", () => this.reloadItems = true);
 
-    this.bus.$on("select", predicate => {
+    this.bus.on("select", predicate => {
       const item = this.items.find(predicate);
       if (item &&
           this.prevSelectedItems.findIndex(i => i.id === item.id) === -1

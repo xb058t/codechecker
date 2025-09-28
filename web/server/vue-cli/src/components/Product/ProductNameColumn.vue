@@ -1,97 +1,95 @@
 <template>
   <v-list-item
     class="pa-0"
-    two-line
+    lines="two"
   >
-    <v-list-item-avatar class="my-1">
+    <template #prepend>
       <v-avatar
         :color="strToColor(product.endpoint)"
         size="48"
         class="my-1"
       >
-        <span class="white--text headline">
-          {{ product.endpoint | productIconName }}
+        <span class="text-white text-h5">
+          {{ productIconName(product.endpoint) }}
         </span>
       </v-avatar>
-    </v-list-item-avatar>
+    </template>
 
-    <v-list-item-content>
-      <v-list-item-title>
-        <confidentiality-icon :value="product.confidentiality" small />
+    <v-list-item-title>
+      <confidentiality-icon :value="product.confidentiality" small />
 
-        <span
-          v-if="product.databaseStatus !== DBStatus.OK || !product.accessible"
-          :style="{ 'text-decoration': 'line-through' }"
-        >
-          {{ product.displayedName }}
-        </span>
-
-        <router-link
-          v-else
-          :to="{ name: 'runs', params: { endpoint: product.endpoint } }"
-        >
-          {{ product.displayedName }}
-        </router-link>
-
-        <span
-          v-if="!product.accessible"
-          color="grey--text"
-        >
-          <v-icon>mdi-alert-outline</v-icon>
-          You do not have access to this product!
-        </span>
-
-        <span
-          v-else-if="product.databaseStatus !== DBStatus.OK"
-          class="error--text"
-        >
-          <v-icon>mdi-alert-outline</v-icon>
-          {{ dbStatusFromCodeToString(product.databaseStatus) }}
-          <span
-            v-if="product.databaseStatus === DBStatus.SCHEMA_MISMATCH_OK ||
-              product.databaseStatus === DBStatus.SCHEMA_MISSING"
-          >
-            Use <kbd>CodeChecker server</kbd> command for schema
-            upgrade/initialization.
-          </span>
-        </span>
-      </v-list-item-title>
-
-      <v-list-item-subtitle>
-        {{ product.description }}
-      </v-list-item-subtitle>
-
-      <v-list-item-subtitle
-        v-if="product.databaseStatus === DBStatus.OK && product.accessible"
+      <span
+        v-if="product.databaseStatus !== DBStatus.OK || !product.accessible"
+        :style="{ 'text-decoration': 'line-through' }"
       >
-        <span
-          v-for="link in links"
-          :key="link.name"
-        >
-          <v-btn
-            :to="{
-              name: link.name,
-              params: { endpoint: product.endpoint },
-              query: link.query || {}
-            }"
-            :title="link.title"
-            :color="link.color"
-            x-small
-            text
-            icon
-          >
-            <v-icon>{{ link.icon }}</v-icon>
-          </v-btn>
+        {{ product.displayedName }}
+      </span>
 
-          <v-divider
-            v-if="link.divider"
-            class="mx-2 d-inline"
-            inset
-            vertical
-          />
+      <router-link
+        v-else
+        :to="{ name: 'runs', params: { endpoint: product.endpoint } }"
+      >
+        {{ product.displayedName }}
+      </router-link>
+
+      <span
+        v-if="!product.accessible"
+        class="text-grey"
+      >
+        <v-icon>mdi-alert-outline</v-icon>
+        You do not have access to this product!
+      </span>
+
+      <span
+        v-else-if="product.databaseStatus !== DBStatus.OK"
+        class="text-error"
+      >
+        <v-icon>mdi-alert-outline</v-icon>
+        {{ dbStatusFromCodeToString(product.databaseStatus) }}
+        <span
+          v-if="product.databaseStatus === DBStatus.SCHEMA_MISMATCH_OK ||
+            product.databaseStatus === DBStatus.SCHEMA_MISSING"
+        >
+          Use <kbd>CodeChecker server</kbd> command for schema
+          upgrade/initialization.
         </span>
-      </v-list-item-subtitle>
-    </v-list-item-content>
+      </span>
+    </v-list-item-title>
+
+    <v-list-item-subtitle>
+      {{ product.description }}
+    </v-list-item-subtitle>
+
+    <v-list-item-subtitle
+      v-if="product.databaseStatus === DBStatus.OK && product.accessible"
+    >
+      <span
+        v-for="link in links"
+        :key="link.name"
+      >
+        <v-btn
+          :to="{
+            name: link.name,
+            params: { endpoint: product.endpoint },
+            query: link.query || {}
+          }"
+          :title="link.title"
+          :color="link.color"
+          size="x-small"
+          variant="text"
+          icon
+        >
+          <v-icon>{{ link.icon }}</v-icon>
+        </v-btn>
+
+        <v-divider
+          v-if="link.divider"
+          class="mx-2 d-inline"
+          inset
+          vertical
+        />
+      </span>
+    </v-list-item-subtitle>
   </v-list-item>
 </template>
 
@@ -103,13 +101,6 @@ import { defaultReportFilterValues } from "@/components/Report/ReportFilter";
 
 export default {
   name: "ProductNameColumn",
-  filters: {
-    productIconName: function (endpoint) {
-      if (!endpoint) return "";
-
-      return endpoint.charAt(0).toUpperCase();
-    }
-  },
   components: { ConfidentialityIcon },
   mixins: [ StrToColorMixin ],
   props: {
@@ -136,6 +127,10 @@ export default {
     }
   },
   methods: {
+    productIconName(endpoint) {
+      if (!endpoint) return ""
+      return endpoint.charAt(0).toUpperCase()
+    },
     dbStatusFromCodeToString(dbStatus) {
       switch (parseInt(dbStatus)) {
       case DBStatus.OK:

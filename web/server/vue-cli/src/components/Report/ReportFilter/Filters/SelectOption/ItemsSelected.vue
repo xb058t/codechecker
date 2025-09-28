@@ -2,12 +2,11 @@
   <v-list
     v-if="selected.length"
     class="pa-0"
-    dense
+    density="compact"
   >
-    <v-list-item-group
+    <v-item-group
       v-model="selected"
-      active-class="light-blue--text"
-      lighten-4
+      class="light-blue--text"
       multiple
     >
       <v-list-item
@@ -16,25 +15,27 @@
         :value="item"
         class="selected-item pa-0 px-1 ma-0 mb-1"
         :disabled="!multiple"
-        dense
+        density="compact"
       >
-        <v-list-item-icon class="ma-1 mr-2">
-          <slot name="icon" :item="item" />
-        </v-list-item-icon>
+        <template #prepend>
+          <div class="ma-1 mr-2">
+            <slot name="icon" :item="item" />
+          </div>
+        </template>
 
-        <v-list-item-content class="pa-0">
+        <div class="pa-0 flex-grow-1">
           <slot name="title" :item="item">
-            <v-list-item-title :title="item.title">
+            <div class="font-weight-medium" :title="item.title">
               {{ item.title }}
-            </v-list-item-title>
+            </div>
           </slot>
-        </v-list-item-content>
+        </div>
 
         <v-chip
           class="report-count"
           color="#878d96"
-          outlined
-          small
+          variant="outlined"
+          size="small"
         >
           {{ item.count || item.count === 0 ? item.count : "N/A" }}
         </v-chip>
@@ -46,16 +47,16 @@
           mdi-close
         </v-icon>
       </v-list-item>
-    </v-list-item-group>
+    </v-item-group>
   </v-list>
 
   <v-list-item
     v-else
-    dense
+    density="compact"
   >
-    <v-list-item-content>
-      <v-list-item-title>No filter</v-list-item-title>
-    </v-list-item-content>
+    <div class="flex-grow-1">
+      <div class="font-italic">No filter</div>
+    </div>
   </v-list-item>
 </template>
 
@@ -80,7 +81,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.v-list-item.v-list-item--dense {
+.v-list-item.v-list-item--density-compact {
   min-height: auto;
 }
 

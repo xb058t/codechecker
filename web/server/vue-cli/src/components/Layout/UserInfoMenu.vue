@@ -2,15 +2,15 @@
   <v-menu
     v-model="menu"
     :close-on-content-click="false"
-    :nudge-width="200"
-    offset-y
+    max-width="200"
+    location="bottom"
   >
-    <template v-slot:activator="{ on }">
+    <template #activator="{ props }">
       <v-btn
         id="user-info-menu-btn"
-        text
+        v-bind="props"
         class="text-none"
-        v-on="on"
+        variant="text"
       >
         <user-icon
           v-if="currentUser"
@@ -23,26 +23,24 @@
       </v-btn>
     </template>
 
-    <v-card>
+    <v-card variant="flat">
       <v-list>
         <v-list-item>
-          <v-list-item-avatar>
+          <template #prepend>
             <user-icon
               :value="currentUser"
             />
-          </v-list-item-avatar>
+          </template>
 
-          <v-list-item-content>
-            <v-list-item-title class="headline">
-              {{ currentUser }}
-            </v-list-item-title>
-          </v-list-item-content>
+          <v-list-item-title class="text-h6">
+            {{ currentUser }}
+          </v-list-item-title>
         </v-list-item>
       </v-list>
 
       <v-divider />
 
-      <v-card flat>
+      <v-card variant="flat">
         <v-card-text>
           Permissions:
           <span v-if="permissions.length">
@@ -51,7 +49,7 @@
               :key="permission"
               class="ma-2"
               color="success"
-              outlined
+              variant="outlined"
             >
               {{ permissionFromCodeToString(permission) }}
             </v-chip>
@@ -74,7 +72,7 @@
         <v-btn
           id="logout-btn"
           color="primary"
-          text
+          variant="text"
           @click="logOut"
         >
           Log out

@@ -1,6 +1,6 @@
 <template>
   <manage-source-component-dialog
-    :value.sync="dialog"
+    v-model="dialog"
   >
     <select-option
       :id="id"
@@ -12,7 +12,7 @@
       :loading="loading"
       :panel="panel"
       @clear="clear(true)"
-      @input="setSelectedItems"
+      @update:selected-items="setSelectedItems"
     >
       <template v-slot:append-toolbar>
         <AnywhereOnReportPath v-model="isAnywhere" />
@@ -41,7 +41,7 @@
             <v-list-item-title
               class="mr-1 filter-item-title"
               :title="item.title"
-              v-on="on"
+              v-bind="on"
             >
               {{ item.title }}
             </v-list-item-title>

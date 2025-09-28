@@ -9,7 +9,7 @@
         id="edit-global-permissions-btn"
         color="primary"
         class="mr-2"
-        v-on="on"
+        v-bind="on"
       >
         <v-icon left>
           mdi-shield-key
@@ -36,6 +36,8 @@ import Vue from "vue";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EditGlobalPermission from "./EditGlobalPermission";
 
+import mitt from "mitt";
+
 export default {
   name: "EditGlobalPermissionBtn",
   components: {
@@ -46,7 +48,7 @@ export default {
   data() {
     return {
       dialog: false,
-      bus: new Vue()
+      bus: mitt()
     };
   },
 

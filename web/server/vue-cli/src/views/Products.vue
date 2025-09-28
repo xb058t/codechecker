@@ -103,7 +103,7 @@
           <v-icon left>
             mdi-calendar-range
           </v-icon>
-          {{ item.latestStoreToProduct | prettifyDate }}
+          {{ prettifyDate(item.latestStoreToProduct) }}
         </v-chip>
       </template>
 
@@ -154,10 +154,12 @@ export default {
   },
 
   data() {
+    const route = this.$router.currentRoute.value;
+
     const itemsPerPageOptions = [ 25 ];
-    const sortBy = this.$router.currentRoute.query["sort-by"];
-    const sortDesc = this.$router.currentRoute.query["sort-desc"];
-    const page = parseInt(this.$router.currentRoute.query["page"]) || 1;
+    const sortBy = route.query["sort-by"];
+    const sortDesc = route.query["sort-desc"];
+    const page = parseInt(route.query["page"]) || 1;
 
     return {
       DBStatus,
@@ -250,7 +252,8 @@ export default {
   },
 
   created() {
-    this.productNameSearch = this.$router.currentRoute.query["name"] || null;
+    const route = this.$router.currentRoute.value;
+    this.productNameSearch = route.query["name"] || null;
 
     authService.getClient().hasPermission(Permission.SUPERUSER, "",
       handleThriftError(isSuperUser => {
@@ -365,6 +368,18 @@ export default {
       } else {
         return "green";
       }
+    },
+    prettifyDate(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (isNaN(date)) return value;
+      return date.toLocaleString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
     }
   }
 };

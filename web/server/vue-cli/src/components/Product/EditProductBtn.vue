@@ -5,22 +5,22 @@
     :loading="loading"
     @confirm="save"
   >
-    <template v-slot:activator="{ on }">
+    <template #activator="{ props }">
       <v-btn
         class="edit-btn"
         icon
         color="primary"
-        v-on="on"
+        v-bind="props"
       >
         <v-icon>mdi-pencil</v-icon>
       </v-btn>
     </template>
 
-    <template v-slot:title>
+    <template #title>
       Edit product
     </template>
 
-    <template v-slot:content>
+    <template #content>
       <v-alert
         v-model="success"
         dismissible
@@ -47,48 +47,44 @@
 
       <v-tabs
         v-model="tab"
-        background-color="transparent"
-        color="basil"
-        grow
+         grow
       >
-        <v-tab>
+        <v-tab value="edit">
           Edit
         </v-tab>
-        <v-tab>
+        <v-tab value="permissions">
           Permissions
         </v-tab>
       </v-tabs>
 
-      <v-tabs-items
+      <v-tabs-window 
         v-model="tab"
       >
-        <v-tab-item>
+        <v-tabs-window-item value="edit">
           <v-container fluid>
             <product-config-form
-              :is-valid.sync="isValid"
+              v-model:is-valid="isValid"
               :is-super-user="isSuperUser"
               :product-config="productConfig"
             />
           </v-container>
-        </v-tab-item>
-        <v-tab-item>
+        </v-tabs-window-item>
+        <v-tabs-window-item value="permissions">
           <edit-product-permission
             :product="product"
             :bus="bus"
-            :success.sync="success"
-            :error.sync="error"
+            v-model:success="success"
+            v-model:error="error"
           />
-        </v-tab-item>
-      </v-tabs-items>
+        </v-tabs-window-item>
+      </v-tabs-window>
     </template>
   </confirm-dialog>
 </template>
 
 <script>
-import Vue from "vue";
-
 import { handleThriftError, prodService } from "@cc-api";
-import {
+import { 
   DatabaseConnection,
   ProductConfiguration
 } from "@cc/prod-types";
@@ -96,6 +92,8 @@ import {
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EditProductPermission from "./Permission/EditProductPermission";
 import ProductConfigForm from "./ProductConfigForm";
+
+import mitt from "mitt";
 
 export default {
   name: "EditProductBtn",
@@ -114,12 +112,12 @@ export default {
       productConfig: new ProductConfiguration({
         connection: new DatabaseConnection()
       }),
-      tab: null,
+      tab: "edit",
       loading: false,
       isValid: false,
       success: false,
       error: false,
-      bus: new Vue()
+      bus: mitt()
     };
   },
   watch: {
@@ -150,7 +148,7 @@ export default {
         }));
 
       // Save permissions.
-      this.bus.$emit("save");
+      this.bus.emit("save");
     }
   }
 };

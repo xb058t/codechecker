@@ -32,14 +32,14 @@
     >
       <v-menu
         v-model="selectTagMenu"
-        content-class="select-tag-menu"
+        class="select-tag-menu"
         :close-on-content-click="false"
-        :nudge-width="300"
-        :max-width="550"
-        offset-x
+        :width="550"
+        offset="10"
       >
-        <template v-slot:activator="{ on: menu }">
+        <template v-slot:activator="{ props: menuProps }">
           <items
+            v-bind="menuProps"
             :items="items"
             :selected-items="prevSelectedItems"
             :search="search"
@@ -61,14 +61,14 @@
             <template v-slot:prepend-count="{ hover, item }">
               <v-tooltip
                 v-if="hover || selectTagForRun === item"
+                location="right"
                 max-width="200"
-                right
               >
-                <template v-slot:activator="{ on: tooltip }">
+                <template v-slot:activator="{ props: tooltipProps }">
                   <v-btn
+                    v-bind="tooltipProps"
                     icon
-                    small
-                    v-on="{ ...tooltip, ...menu }"
+                    size="small"
                     @click.stop="specifyTag(item)"
                   >
                     <v-icon>mdi-cog</v-icon>

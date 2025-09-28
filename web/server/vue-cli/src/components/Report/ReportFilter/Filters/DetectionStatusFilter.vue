@@ -51,7 +51,7 @@
         <template v-slot:activator="{ on }">
           <v-icon
             color="error"
-            v-on="on"
+            v-bind="on"
           >
             mdi-alert
           </v-icon>

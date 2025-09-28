@@ -4,7 +4,7 @@
     color="primary"
     outlined
     small
-    v-on="on"
+    v-bind="on"
   >
     <v-icon
       class="mr-1"

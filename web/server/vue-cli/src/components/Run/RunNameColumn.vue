@@ -1,13 +1,14 @@
 <template>
-  <v-list-item two-line>
-    <v-list-item-content>
+  <v-list-item lines="two">
+    <div class="v-list-item__content">
       <v-list-item-title>
         <router-link
-          :to="{ name: 'reports',
-                 query: {
-                   ...defaultReportFilterValues,
-                   ...reportFilterQuery
-                 }
+          :to="{
+            name: 'reports',
+            query: {
+              ...defaultReportFilterValues,
+              ...reportFilterQuery
+            }
           }"
           class="name mr-2"
         >
@@ -30,7 +31,6 @@
 
         <v-divider
           class="mx-2 d-inline"
-          inset
           vertical
         />
 
@@ -40,26 +40,28 @@
 
         <v-divider
           class="mx-2 d-inline"
-          inset
           vertical
         />
 
         <v-btn
           v-for="(value, status) in detectionStatusCount"
           :key="status"
-          :to="{ name: 'reports', query: {
-            run: name,
-            'detection-status': detectionStatusFromCodeToString(status)
-          }}"
+          :to="{
+            name: 'reports',
+            query: {
+              run: name,
+              'detection-status': detectionStatusFromCodeToString(status)
+            }
+          }"
           class="detection-status-count pa-0"
-          small
-          text
+          size="small"
+          variant="text"
         >
           <detection-status-icon class="mr-1" :status="parseInt(status)" />
           ({{ value }})
         </v-btn>
       </v-list-item-subtitle>
-    </v-list-item-content>
+    </div>
   </v-list-item>
 </template>
 
@@ -95,7 +97,7 @@ export default {
     showRunHistory: { type: Boolean, default: true },
     openAnalysisInfoDialog: { type: Function, default: () => {} },
     reportFilterQuery: { type: Object, default: () => {} },
-    statisticsFilterQuery: { type: Object, default: () => {} },
+    statisticsFilterQuery: { type: Object, default: () => {} }
   },
   data() {
     return {
@@ -104,9 +106,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters([
-      "queries"
-    ])
+    ...mapGetters(["queries"])
   }
 };
 </script>

@@ -67,6 +67,8 @@ import UserComment from "./UserComment";
 import RemoveCommentDialog from "./RemoveCommentDialog";
 import SystemComment from "./SystemComment";
 
+import mitt from "mitt";
+
 export default {
   name: "ReportComments",
   components: {
@@ -88,7 +90,7 @@ export default {
       editDialog: false,
       removeDialog: false,
       loading: false,
-      bus: new Vue()
+      bus: mitt()
     };
   },
 

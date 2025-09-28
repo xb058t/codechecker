@@ -1,23 +1,21 @@
 <template>
   <v-menu
     v-model="menu"
-    content-class="set-cleanup-plan-dialog"
+    class="set-cleanup-plan-dialog"
     :close-on-content-click="false"
-    :nudge-width="100"
     offset-y
   >
-    <template v-slot:activator="{ on, attrs }">
+    <template #activator="{ props }">
       <v-btn
+        v-bind="props"
         color="primary"
         class="set-cleanup-plan-btn"
-        outlined
-        small
+        variant="outlined"
+        size="small"
         :disabled="!selectedReportHashes.length"
         :loading="loading"
-        v-bind="attrs"
-        v-on="on"
       >
-        <v-icon class="mr-1" small>
+        <v-icon class="mr-1" size="small">
           mdi-sign-direction
         </v-icon>
         Set cleanup plan
@@ -30,7 +28,7 @@
           <li>
             You can manage cleanup plans from the report filter bar by clicking
             on the pencil icon
-            (<v-icon color="white" small>
+            (<v-icon color="white" size="small">
               mdi-pencil
             </v-icon>)
             beside the <i>Cleanup plan</i> filter.
@@ -48,27 +46,27 @@
     </template>
 
     <v-card>
-      <v-list-item-group
-        :value="changedSelectedItems"
+      <v-item-group
+        v-model="changedSelectedItems"
         multiple
-        @change="updateSelectedCleanupPlans"
+        @update:modelValue="updateSelectedCleanupPlans"
       >
         <cleanup-plan-tab v-model="tab">
-          <template v-slot:open>
+          <template #open>
             <cleanup-plan-list
               :value="openCleanupPlans"
               :not-all-selected="changedNotAllSelected"
             />
           </template>
 
-          <template v-slot:closed>
+          <template #closed>
             <cleanup-plan-list
               :value="closedCleanupPlans"
               :not-all-selected="changedNotAllSelected"
             />
           </template>
         </cleanup-plan-tab>
-      </v-list-item-group>
+      </v-item-group>
     </v-card>
   </v-menu>
 </template>

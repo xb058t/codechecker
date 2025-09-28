@@ -7,50 +7,47 @@
     <v-list
       v-for="i in 1"
       :key="i"
-      dense
-      flat
-      tile
+      density="compact"
       elevation="0"
     >
       <v-list-item class="pl-1">
-        <v-list-item-content class="mr-5">
+        <v-list-item-title class="mr-5">
           <clear-all-filters
             :namespace="namespace"
             @clear="clearAllFilters"
           />
-        </v-list-item-content>
-        <v-list-item-avatar :style="{width: 'auto'}">
+        </v-list-item-title>
+        <template #append>
           <report-count :value="reportCount" />
-        </v-list-item-avatar>
+        </template>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="unique-filter pl-1">
-        <v-list-item-content>
+        <v-list-item-title>
           <unique-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-list-item id="baseline-filters" class="pl-0">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title class="pa-0">
           <v-expansion-panels
             v-model="activeBaselinePanelId"
-            hover
           >
             <v-expansion-panel>
-              <v-expansion-panel-header
-                class="pa-0 px-1 primary--text"
+              <v-expansion-panel-title
+                class="pa-0 px-1 text-primary"
               >
                 <header>
                   <b>BASELINE</b>
                 </header>
-              </v-expansion-panel-header>
-              <v-expansion-panel-content class="pa-1">
+              </v-expansion-panel-title>
+              <v-expansion-panel-text class="pa-1">
                 <baseline-run-filter
                   ref="filters"
                   :namespace="namespace"
@@ -64,10 +61,10 @@
                   :namespace="namespace"
                   @update:url="updateUrl"
                 />
-              </v-expansion-panel-content>
+              </v-expansion-panel-text>
             </v-expansion-panel>
           </v-expansion-panels>
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-list-item
@@ -75,20 +72,19 @@
         id="compare-to-filters"
         class="pl-0"
       >
-        <v-list-item-content class="pa-0">
+        <v-list-item-title class="pa-0">
           <v-expansion-panels
             v-model="activeCompareToPanelId"
-            hover
           >
             <v-expansion-panel>
-              <v-expansion-panel-header
-                class="pa-0 px-1 primary--text"
+              <v-expansion-panel-title
+                class="pa-0 px-1 text-primary"
               >
                 <header>
                   <b>COMPARE TO</b>
                 </header>
-              </v-expansion-panel-header>
-              <v-expansion-panel-content class="pa-1">
+              </v-expansion-panel-title>
+              <v-expansion-panel-text class="pa-1">
                 <compared-to-run-filter
                   ref="filters"
                   :namespace="namespace"
@@ -111,56 +107,56 @@
                   :namespace="namespace"
                   @update:url="updateUrl"
                 />
-              </v-expansion-panel-content>
+              </v-expansion-panel-text>
             </v-expansion-panel>
           </v-expansion-panels>
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <file-path-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <checker-name-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <severity-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <report-status-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider v-if="showReviewStatus" />
@@ -169,87 +165,87 @@
         v-if="showReviewStatus"
         class="pl-1"
       >
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <review-status-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <detection-status-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <analyzer-name-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <source-component-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <cleanup-plan-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <checker-message-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-list-item id="date-filters" class="pl-0">
-        <v-list-item-content class="pa-0">
-          <v-expansion-panels v-model="activeDatePanelId" hover>
+        <v-list-item-title class="pa-0">
+          <v-expansion-panels v-model="activeDatePanelId">
             <v-expansion-panel>
-              <v-expansion-panel-header
+              <v-expansion-panel-title
                 class="pa-0 px-1"
               >
                 <header>
                   <b>Dates</b>
                 </header>
-              </v-expansion-panel-header>
-              <v-expansion-panel-content class="pa-1">
+              </v-expansion-panel-title>
+              <v-expansion-panel-text class="pa-1">
                 <detection-date-filter
                   id="detection-date-filter"
                   ref="filters"
@@ -265,46 +261,46 @@
                   :namespace="namespace"
                   @update:url="updateUrl"
                 />
-              </v-expansion-panel-content>
+              </v-expansion-panel-text>
             </v-expansion-panel>
           </v-expansion-panels>
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <report-hash-filter
             id="report-hash-filter"
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <bug-path-length-filter
             id="bug-path-length-filter"
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider />
 
       <v-list-item class="pl-1">
-        <v-list-item-content class="pa-0">
+        <v-list-item-title>
           <testcase-filter
             ref="filters"
             :namespace="namespace"
             @update:url="updateUrl"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
 
       <v-divider v-if="showRemoveFilteredReports" />
@@ -313,13 +309,13 @@
         v-if="showRemoveFilteredReports"
         class="pl-1"
       >
-        <v-list-item-content>
+        <v-list-item-title>
           <remove-filtered-reports
             class="mt-4"
             :namespace="namespace"
             @update="updateAllFilters"
           />
-        </v-list-item-content>
+        </v-list-item-title>
       </v-list-item>
     </v-list>
   </div>
@@ -426,7 +422,7 @@ export default {
     this.initByUrl();
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     this.unregisterWatchers();
 
     const filters = this.$refs.filters;

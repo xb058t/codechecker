@@ -6,7 +6,7 @@
     offset-x
   >
     <template v-slot:activator="{ on }">
-      <v-icon color="primary" class="description" v-on="on">
+      <v-icon color="primary" class="description" v-bind="on">
         mdi-information-outline
       </v-icon>
     </template>

@@ -48,7 +48,7 @@
                   class="analyzer-checkers-panel"
                   :data-analyzer-name="analyzer"
                 >
-                  <v-expansion-panel-header
+                  <v-expansion-panel-title
                     class="pa-0 px-1"
                   >
                     <v-row
@@ -84,18 +84,18 @@
                         />
                       </v-col>
                     </v-row>
-                  </v-expansion-panel-header>
+                  </v-expansion-panel-title>
 
-                  <v-expansion-panel-content
+                  <v-expansion-panel-text
                     class="pa-1"
                   >
                     <template
                       v-for="(checkers, group) in
                         analysisInfo.checkersGroupedAndSorted[analyzer]"
+                        :key="group"
                     >
                       <checker-group
                         v-if="group !== GroupKeys.NoGroup"
-                        :key="group"
                         :group="group"
                         :checkers="checkers"
                         :counts="
@@ -103,11 +103,10 @@
                       />
                       <checker-rows
                         v-else
-                        :key="group"
                         :checkers="checkers"
                       />
                     </template>
-                  </v-expansion-panel-content>
+                  </v-expansion-panel-text>
                 </v-expansion-panel>
               </v-expansion-panels>
             </v-container>

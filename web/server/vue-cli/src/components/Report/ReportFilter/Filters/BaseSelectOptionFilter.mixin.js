@@ -1,6 +1,8 @@
 import Vue from "vue";
 import BaseFilterMixin from "./BaseFilter.mixin";
 
+import mitt from "mitt";
+
 export default {
   name: "BaseSelectOptionFilter",
   mixins: [ BaseFilterMixin ],
@@ -9,7 +11,7 @@ export default {
     return {
       id: -1,
       selectedItems: [],
-      bus: new Vue(),
+      bus: mitt(),
       loading: false,
       defaultValues: null
     };
@@ -21,7 +23,7 @@ export default {
       await this.updateReportFilter();
 
       if (updateUrl) {
-        this.$emit("update:url");
+        this.emit("update:url");
       }
     },
 
@@ -85,7 +87,7 @@ export default {
     },
 
     async update() {
-      this.bus.$emit("update");
+      this.bus.emit("update");
 
       if (!this.selectedItems.length) return;
 

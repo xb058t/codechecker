@@ -12,7 +12,7 @@
         class="remove-btn"
         icon
         color="error"
-        v-on="on"
+        v-bind="on"
       >
         <v-icon>mdi-trash-can-outline</v-icon>
       </v-btn>

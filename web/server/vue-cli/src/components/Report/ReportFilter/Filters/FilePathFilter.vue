@@ -10,7 +10,7 @@
     :limit="defaultLimit"
     :panel="panel"
     @clear="clear(true)"
-    @input="setSelectedItems"
+    @update:selected-items="setSelectedItems"
   >
     <template v-slot:append-toolbar>
       <AnywhereOnReportPath v-model="isAnywhere" />
@@ -110,7 +110,7 @@ export default {
       return new Promise(resolve => {
         ccService.getClient().getFileCounts(this.runIds, reportFilter,
           this.cmpData, limit, offset, handleThriftError(res => {
-          // Order the results alphabetically.
+            // Order the results alphabetically.
             resolve(Object.keys(res).sort((a, b) => {
               if (a < b) return -1;
               if (a > b) return 1;

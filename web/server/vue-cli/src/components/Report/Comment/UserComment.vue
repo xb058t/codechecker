@@ -1,45 +1,46 @@
 <template>
   <v-timeline-item
     class="user-comment"
-    color="green"
-    icon="mdi-account"
-    small
+    dot-color="green"
+    size="small"
     fill-dot
   >
+    <template #icon>
+      <v-icon>mdi-account</v-icon>
+    </template>
+
     <v-card
       class="elevation-2"
     >
-      <v-list two-line>
+      <v-list lines="two">
         <v-list-item>
-          <user-icon
-            :value="comment.author"
-            :size="32"
-            class="mr-2"
-            tile
-          />
-          <v-list-item-content>
-            <v-list-item-title>
-              {{ comment.author }}
-            </v-list-item-title>
-            <v-list-item-subtitle
-              :title="comment.createdAt"
-            >
-              {{ createdAt }}
-            </v-list-item-subtitle>
-          </v-list-item-content>
-          <v-list-item-action>
-            <div>
-              <edit-comment-btn
-                :comment="comment"
-                :bus="bus"
-              />
+          <template #prepend>
+            <user-icon
+              :value="comment.author"
+              :size="32"
+              class="mr-2"
+              tile
+            />
+          </template>
+          <v-list-item-title>
+            {{ comment.author }}
+          </v-list-item-title>
+          <v-list-item-subtitle
+            :title="comment.createdAt"
+          >
+            {{ createdAt }}
+          </v-list-item-subtitle>
+          <template #append>
+            <edit-comment-btn
+              :comment="comment"
+              :bus="bus"
+            />
 
-              <remove-comment-btn
-                :comment="comment"
-                :bus="bus"
-              />
-            </div>
-          </v-list-item-action>
+            <remove-comment-btn
+              :comment="comment"
+              :bus="bus"
+            />
+          </template>
         </v-list-item>
       </v-list>
       <!-- eslint-disable vue/no-v-html -->
@@ -52,7 +53,6 @@
 </template>
 
 <script>
-import Vue from "vue";
 import { formatDistanceToNow, parse } from "date-fns";
 
 import { CommentData } from "@cc/report-server-types";
@@ -70,7 +70,7 @@ export default {
   },
   props: {
     comment: { type: CommentData, required: true },
-    bus: { type: Vue, required: true }
+    bus: { type: Object, required: true }
   },
   computed: {
     message() {

@@ -11,7 +11,7 @@
       <v-btn
         outlined
         color="error"
-        v-on="on"
+        v-bind="on"
       >
         <v-icon left>
           mdi-delete

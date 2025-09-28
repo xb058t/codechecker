@@ -4,7 +4,7 @@
     flat
   >
     <v-expansion-panel>
-      <v-expansion-panel-header class="pa-0" hide-actions>
+      <v-expansion-panel-title class="pa-0" hide-actions>
         <v-toolbar flat dense>
           <v-toolbar-title class="font-weight-bold body-2">
             <v-icon class="expansion-btn">
@@ -34,11 +34,11 @@
             <slot name="append-toolbar-items" />
           </v-toolbar-items>
         </v-toolbar>
-      </v-expansion-panel-header>
+      </v-expansion-panel-title>
 
-      <v-expansion-panel-content>
+      <v-expansion-panel-text>
         <slot />
-      </v-expansion-panel-content>
+      </v-expansion-panel-text>
     </v-expansion-panel>
   </v-expansion-panels>
 </template>

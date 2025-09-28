@@ -18,7 +18,7 @@
 
     <template v-slot:item.closedAt="{ item }">
       <span v-if="item.closedAt">
-        {{ item.closedAt | fromUnixTime }}
+        {{ fromUnixTime(item.closedAt) }}
       </span>
     </template>
 
@@ -77,6 +77,7 @@
 </template>
 
 <script>
+import { format } from "date-fns";
 import DueDate from "./DueDate";
 
 export default {
@@ -118,6 +119,15 @@ export default {
           sortable: false
         },
       ].filter(c => !this.hideCols.includes(c.value));
+    }
+  },
+  methods: {
+    fromUnixTime(timestamp, formatStr = "yyyy-MM-dd") {
+      const date =
+        typeof timestamp === "object" && typeof timestamp.toNumber === "function"
+          ? new Date(timestamp.toNumber() * 1000)
+          : new Date(timestamp * 1000);
+      return format(date, formatStr);
     }
   }
 };

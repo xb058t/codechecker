@@ -10,7 +10,7 @@
     </pane>
     <pane>
       <checker-documentation-dialog
-        :value.sync="checkerDocDialog"
+        v-model="checkerDocDialog"
         :checker="selectedChecker"
       />
 
@@ -19,13 +19,13 @@
         v-fill-height
         :headers="tableHeaders"
         :items="formattedReports"
-        :options.sync="pagination"
+        v-model:options="pagination"
         :loading="loading"
         loading-text="Loading reports..."
-        :server-items-length.sync="totalItems"
+        :items-length="totalItems"
         :footer-props="footerProps"
         :must-sort="true"
-        :expanded.sync="expanded"
+        v-model:expanded="expanded"
         show-expand
         show-select
         :mobile-breakpoint="1100"
@@ -33,7 +33,7 @@
         @item-expanded="itemExpanded"
       >
         <template v-slot:top>
-          <v-toolbar flat class="report-filter-toolbar" dense>
+          <v-toolbar flat class="report-filter-toolbar" density="compact">
             <v-row>
               <v-col class="pa-0" align="right">
                 <set-cleanup-plan-btn :value="selected" />
@@ -42,7 +42,7 @@
           </v-toolbar>
         </template>
 
-        <template v-slot:expanded-item="{ item }">
+        <template v-slot:expanded-row="{ item }">
           <td
             class="pa-0"
             :colspan="headers.length"
@@ -51,9 +51,9 @@
               <v-list-item
                 v-for="report in item.sameReports"
                 :key="report.reportId.toNumber()"
-                dense
+                density="compact"
               >
-                <v-list-item-content>
+                <div class="v-list-item__content">
                   <v-list-item-title>
                     Same report in <kbd>{{ report.$runName }}</kbd> run:
                     <span>
@@ -67,24 +67,26 @@
                         :size="18"
                       />
                       <router-link
-                        :to="{ name: 'report-detail', query: {
-                          ...$router.currentRoute.query,
-                          'report-id': report.reportId,
-                          'report-hash': undefined
-                        }}"
+                        :to="{ 
+                          name: 'report-detail',
+                          query: {
+                            ...$router.currentRoute.value.query,
+                            'report-id': report.reportId,
+                            'report-hash': undefined
+                          }
+                        }"
                       >
                         {{ report.checkedFile }}:{{ report.line }}
                       </router-link>
                     </span>
                   </v-list-item-title>
-                </v-list-item-content>
+                </div>
               </v-list-item>
             </v-list>
 
             <v-card
               v-else
               flat
-              tile
             >
               <v-card-text>
                 Loading...
@@ -99,14 +101,14 @@
 
         <template #item.bugHash="{ item }">
           <span :title="item.bugHash">
-            {{ item.bugHash | truncate(10) }}
+            {{ truncate(item.bugHash, 10) }}
           </span>
         </template>
 
         <template #item.checkedFile="{ item }">
           <router-link
             :to="{ name: 'report-detail', query: {
-              ...$router.currentRoute.query,
+              ...$router.currentRoute.value.query,
               'report-id': item.reportId ? item.reportId : undefined,
               'report-hash': item.bugHash,
               'report-filepath': reportFilter.isUnique
@@ -207,16 +209,18 @@ export default {
 
   data() {
     const itemsPerPageOptions = [ 25, 50, 100 ];
+    const route = this.$router.currentRoute.value;
 
-    const page = parseInt(this.$router.currentRoute.query["page"]) || 1;
+    const page = parseInt(route.query["page"]) || 1;
     const itemsPerPage =
-      parseInt(this.$router.currentRoute.query["items-per-page"]) ||
+      parseInt(route.query["items-per-page"]) ||
       itemsPerPageOptions[0];
-    const sortBy = this.$router.currentRoute.query["sort-by"];
-    const sortDesc = this.$router.currentRoute.query["sort-desc"];
+    const sortBy = route.query["sort-by"];
+    const sortDesc = route.query["sort-desc"];
 
     return {
       headers: [
+
         {
           text: "",
           value: "data-table-expand"
@@ -300,7 +304,9 @@ export default {
         page: page,
         itemsPerPage: itemsPerPage,
         sortBy: sortBy ? [ sortBy ] : [],
-        sortDesc: sortDesc !== undefined ? [ !!sortDesc ] : []
+        sortDesc: sortDesc !== undefined
+          ? [ sortDesc === "true" || sortDesc === true ]
+          : []
       },
       footerProps: {
         itemsPerPageOptions: itemsPerPageOptions
@@ -411,7 +417,7 @@ export default {
   },
 
   methods: {
-    itemExpanded(expandedItem) {
+    itemExpanded(expandedItem) { 
       if (expandedItem.item.sameReports) return;
 
       const bugHash = expandedItem.item.bugHash;
@@ -422,8 +428,10 @@ export default {
 
     getSortMode() {
       let type = null;
-      switch (this.pagination.sortBy[0]) {
-      case "checkedFile":
+      const sortBy = this.pagination.sortBy?.[0] ?? null;
+      const sortDesc = this.pagination.sortDesc?.[0] ?? false;
+      switch (sortBy) {
+       case "checkedFile":
         type = SortType.FILENAME;
         break;
       case "checkerId":
@@ -451,9 +459,9 @@ export default {
         type = SortType.SEVERITY;
       }
 
-      const ord = this.pagination.sortDesc[0] ? Order.DESC : Order.ASC;
+      const ord = sortDesc ? Order.DESC : Order.ASC;
 
-      return [ new SortMode({ type: type, ord: ord }) ];
+      return [ new SortMode({ type, ord }) ];
     },
 
     openCheckerDocDialog(checkerId, analyzerName) {
@@ -473,9 +481,9 @@ export default {
 
       const page = this.pagination.page === 1
         ? undefined : this.pagination.page;
-      const sortBy = this.pagination.sortBy.length
+      const sortBy = this.pagination.sortBy?.length
         ? this.pagination.sortBy[0] : undefined;
-      const sortDesc = this.pagination.sortDesc.length
+      const sortDesc = this.pagination.sortDesc?.length
         ? this.pagination.sortDesc[0] : undefined;
 
       this.$router.replace({
@@ -527,6 +535,10 @@ export default {
             });
           });
         }));
+    },
+    truncate(value, length) {
+      if (!value) return "";
+      return value.length > length ? value.substring(0, length) + "…" : value;
     }
   }
 };

@@ -11,7 +11,7 @@
     :multiple="true"
     :panel="panel"
     @clear="clear(true)"
-    @input="setSelectedItems"
+    @update:selected-items="setSelectedItems"
   >
     <template v-slot:icon>
       <v-icon color="grey">
@@ -57,11 +57,12 @@ export default {
   methods: {
     updateReportFilter() {
       this.setReportFilter({
-        annotations: this.selectedItems.length == 0
-          ? null : this.selectedItems.map(item => new Pair({
-            first: "testcase",
-            second: item.id
-          }))
+        annotations: this.selectedItems.length === 0
+          ? null
+          : this.selectedItems.map(item => new Pair({
+              first: "testcase",
+              second: item.id
+            }))
       });
     },
 
@@ -70,27 +71,26 @@ export default {
       this.update();
     },
 
-    fetchItems(opt={}) {
+    fetchItems(opt = {}) {
       this.loading = true;
 
       const reportFilter = new ReportFilter(this.reportFilter);
-      reportFilter.annotations = opt.query ? opt.query.map(q => new Pair({
-        first: "testcase",
-        second: q
-      })) : [ new Pair({
-        first: "testcase",
-        second: null 
-      }) ];
+      reportFilter.annotations = opt.query
+        ? opt.query.map(q => new Pair({
+            first: "testcase",
+            second: q
+          })) : [ new Pair({
+            first: "testcase",
+            second: null
+          }) ];
 
       return new Promise(resolve => {
         ccService.getClient().getReportAnnotations(this.runIds, reportFilter,
           this.cmpData, handleThriftError(res => {
-            resolve(res.map(annotation => {
-              return {
-                id: annotation,
-                title: annotation
-              };
-            }));
+            resolve(res.map(annotation => ({
+              id: annotation,
+              title: annotation
+            })));
             this.loading = false;
           }));
       });

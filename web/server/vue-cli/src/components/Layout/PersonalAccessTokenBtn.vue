@@ -56,7 +56,7 @@
       <template v-slot:activator="{ on }">
         <v-card flat>
           <v-card-text>
-            <v-btn color="primary" block v-on="on" @click="loadTokens()">
+            <v-btn color="primary" block v-bind="on" @click="loadTokens()">
               <v-icon left>
                 mdi-shield-account
               </v-icon>

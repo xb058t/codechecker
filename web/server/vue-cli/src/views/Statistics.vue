@@ -55,6 +55,8 @@ import { ccService, handleThriftError } from "@cc-api";
 import { FillHeight } from "@/directives";
 import { ReportFilter } from "@/components/Report/ReportFilter";
 
+import mitt from "mitt";
+
 const namespace = "statistics";
 
 export default {
@@ -112,7 +114,7 @@ export default {
       showCompareTo: true,
       tab: null,
       tabs: tabs,
-      bus: new Vue(),
+      bus: mitt(),
 
       // Map the tab link names to boolean values. If the value of a key is
       // true, it means that on the next tab change the tab needs to be

@@ -1,16 +1,16 @@
 <template>
   <v-tooltip
-    right
+    location="right"
     color="white"
   >
-    <template v-slot:activator="{ on }">
-      <slot :on="on" />
+    <template v-slot:activator="{ props }">
+      <slot v-bind="props" />
     </template>
 
     <v-card
       v-if="value"
       class="mx-auto"
-      outlined
+      variant="outlined"
     >
       <v-list-item
         v-for="v in value.split('\n')"
@@ -18,7 +18,7 @@
         :class="[
           v[0] === '+' ? 'include' : v[0] === '-' ? 'exclude': 'other'
         ]"
-        dense
+        density="compact"
       >
         {{ v }}
       </v-list-item>
@@ -36,25 +36,23 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.v-tooltip__content {
+.v-overlay__content {
   padding: 0px;
 
   .v-list-item {
     min-height: auto;
   }
 
-  .theme--light.v-list-item {
-    &.include {
-      color: green !important;
-    }
+  .include {
+    color: green !important;
+  }
 
-    &.exclude {
-      color: red !important;
-    }
+  .exclude {
+    color: red !important;
+  }
 
-    &.other {
-      color: black !important;
-    }
+  .other {
+    color: black !important;
   }
 }
 </style>

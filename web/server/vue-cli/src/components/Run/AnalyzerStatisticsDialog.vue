@@ -30,13 +30,13 @@
               v-for="(stats, analyzer) in analyzerStatistics"
               :key="analyzer"
             >
-              <v-expansion-panel-header
+              <v-expansion-panel-title
                 class="pa-0 px-1 primary--text font-weight-bold"
               >
                 {{ analyzer }}
-              </v-expansion-panel-header>
+              </v-expansion-panel-title>
 
-              <v-expansion-panel-content class="pa-1">
+              <v-expansion-panel-text class="pa-1">
                 <v-container>
                   <v-row>
                     <v-icon class="mr-2">
@@ -91,7 +91,7 @@
                     </v-container>
                   </v-row>
                 </v-container>
-              </v-expansion-panel-content>
+              </v-expansion-panel-text>
             </v-expansion-panel>
           </v-expansion-panels>
         </v-container>

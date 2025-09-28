@@ -1,10 +1,10 @@
-import Vue from "vue";
-import Router from "vue-router";
+import {
+  createRouter as _createRouter,
+  createWebHistory
+} from "vue-router";
 
-Vue.use(Router);
-
-export default new Router({
-  mode: "history",
+export const router = _createRouter({
+  history: createWebHistory(),
   routes: [
     {
       path: "/",
@@ -97,8 +97,7 @@ export default new Router({
               path: "coverage",
               name: "checker-coverage-statistics",
               component: () =>
-                import("@/components/Statistics/CheckerCoverage/\
-CheckerCoverageStatistics"),
+                import("@/components/Statistics/CheckerCoverage/CheckerCoverageStatistics"),
             },
             {
               path: "guideline",

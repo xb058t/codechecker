@@ -3,11 +3,11 @@
     <v-progress-linear
       v-if="loading"
       indeterminate
-      size="64"
+      height="64"
     />
 
     <items
-      :items.sync="tags"
+      v-model:items="tags"
       :selected-items="selectedItems"
       :search="search"
       :limit="defaultLimit"
@@ -18,7 +18,11 @@
       <template v-slot:append-toolbar>
         <v-container>
           <v-row class="pt-2" justify="center">
-            <v-date-picker v-model="dateFilter" no-title />
+            <v-date-picker
+              v-model="dateFilter"
+              hide-header
+              elevation="0"
+            />
           </v-row>
         </v-container>
 
@@ -27,7 +31,6 @@
           midnight of the given date.
         </bulb-message>
       </template>
-
 
       <template v-slot:title="{ item }">
         <v-list-item-title
@@ -186,7 +189,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-::v-deep .v-date-picker-table {
-  height: 210px;
+::v-deep(.v-date-picker-month__days) {
+  min-height: 210px;
 }
 </style>

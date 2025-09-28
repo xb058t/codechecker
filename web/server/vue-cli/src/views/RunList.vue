@@ -87,7 +87,7 @@
           :value="item.analyzerStatistics"
           :show-dividers="false"
           tag="div"
-          @click.native="openAnalyzerStatisticsDialog(item)"
+          @click="openAnalyzerStatisticsDialog(item)"
         />
       </template>
 
@@ -100,7 +100,7 @@
           <v-icon left>
             mdi-calendar-range
           </v-icon>
-          {{ item.runDate | prettifyDate }}
+          {{ prettifyDate(item.runDate) }}
         </v-chip>
       </template>
 
@@ -181,14 +181,15 @@ export default {
   mixins: [ VersionMixin ],
 
   data() {
+    const route = this.$router.currentRoute.value;
     const itemsPerPageOptions = [ 25, 50, 100 ];
 
-    const page = parseInt(this.$router.currentRoute.query["page"]) || 1;
+    const page = parseInt(route.query["page"]) || 1;
     const itemsPerPage =
-      parseInt(this.$router.currentRoute.query["items-per-page"]) ||
+      parseInt(route.query["items-per-page"]) ||
       itemsPerPageOptions[0];
-    const sortBy = this.$router.currentRoute.query["sort-by"];
-    const sortDesc = this.$router.currentRoute.query["sort-desc"];
+    const sortBy = route.query["sort-by"];
+    const sortDesc = route.query["sort-desc"];
 
     return {
       initialized: false,
@@ -336,7 +337,8 @@ export default {
     },
 
     async initExpandedItems() {
-      const expanded = this.$router.currentRoute.query["expanded"];
+      const route = this.$router.currentRoute.value;
+      const expanded = route.query["expanded"];
       if (!expanded)
         return;
 
@@ -545,6 +547,15 @@ export default {
       return {
         run: run.name
       };
+    },
+    prettifyDate(date) {
+      if (!date) return "";
+      try {
+        return new Date(date).toLocaleString();
+      } catch (e) {
+        console.warn("Invalid date:", date);
+        return date;
+      }
     }
   }
 };

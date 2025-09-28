@@ -6,10 +6,12 @@ import {
   createXHRConnection
 } from "thrift";
 
-import router from "@/router";
-import store from "@/store";
+import { router } from "@/router";
+import { store } from "@/store";
 import { ADD_ERROR, PURGE_AUTH } from "@/store/mutations.type";
 import authService from "./auth.service";
+
+import mitt from "mitt";
 
 // Host should be set explicitly to `hostname` because thrift will use
 // the value of `window.location.host` which will contain port number by
@@ -17,9 +19,9 @@ import authService from "./auth.service";
 const host = process.env.CC_SERVER_HOST || window.location.hostname;
 const port = parseInt(process.env.CC_SERVER_PORT, 10) ||
   parseInt(window.location.port, 10);
-const api = process.env.CC_API_VERSION;
+const api = "6.61" || process.env.CC_API_VERSION;
 
-const eventHub = new Vue();
+const eventHub = mitt();
 
 class BaseService {
   constructor(serviceName, serviceClass) {
@@ -28,7 +30,7 @@ class BaseService {
     this._client = this.createClient();
 
     // Event which can be used to update client on route changes.
-    eventHub.$on("update", endpoint => {
+    eventHub.on("update", endpoint => {
       this._client = this.createClient(endpoint);
     });
   }

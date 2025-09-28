@@ -11,6 +11,12 @@ module.exports = merge(common, {
     filename: '[name].[contenthash].js',
     publicPath: "/"
   },
+  resolve: {
+    alias: {
+      vue$: '@vue/compat',
+      vue: '@vue/compat'
+    }
+  },
   plugins: [
     new DefinePlugin({
       'process.env': {

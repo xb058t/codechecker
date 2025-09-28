@@ -8,7 +8,7 @@
       <v-btn
         id="new-product-btn"
         color="primary"
-        v-on="on"
+        v-bind="on"
       >
         <v-icon left>
           mdi-plus

@@ -1,12 +1,11 @@
 <template>
   <v-data-table
+    v-bind="{ ...$props, ...$attrs }"
     :disable-pagination="true"
     :hide-default-footer="true"
     :custom-sort="customSort"
     :must-sort="true"
     class="elevation-0"
-    v-bind="{ ...$props, ...$attrs }"
-    v-on="$listeners"
   >
     <template v-slot:header.component="{ header }">
       <v-icon size="16">
@@ -95,7 +94,7 @@
     <template #item.component="{ item }">
       <source-component-tooltip :value="item.value">
         <template v-slot="{ on }">
-          <span v-on="on">
+          <span v-bind="on">
             <router-link
               :to="{ name: 'reports', query: {
                 ...$router.currentRoute.query,

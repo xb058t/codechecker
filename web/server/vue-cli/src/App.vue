@@ -3,9 +3,11 @@
     <the-header />
 
     <v-main>
-      <keep-alive :include="keepAliveList">
-        <router-view />
-      </keep-alive>
+      <router-view v-slot="{ Component }">
+        <keep-alive :include="keepAliveList">
+          <component :is="Component" />
+        </keep-alive>
+      </router-view>
       <errors />
     </v-main>
   </v-app>

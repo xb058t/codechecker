@@ -2,21 +2,18 @@
   <div>
     <v-dialog
       v-model="dialog"
-      width="500"
-      :scrollable="true"
+      max-width="500"
+      scrollable
     >
       <v-card>
         <v-card-title
           class="headline primary white--text"
-          primary-title
         >
           Credits
 
           <v-spacer />
 
-          <v-btn icon dark @click="dialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
+          <v-btn icon="mdi-close" dark @click="dialog = false" />
         </v-card-title>
         <v-card-text>
           <v-list>
@@ -24,21 +21,17 @@
               v-for="credit in credits"
               :key="credit.name"
             >
-              <v-list-item-avatar>
+              <template #prepend>
                 <v-btn
                   :href="`http://github.com/${credit.github}`"
                   target="_blank"
-                  icon
+                  icon="mdi-github"
                   color="primary"
-                >
-                  <v-icon>mdi-github</v-icon>
-                </v-btn>
-              </v-list-item-avatar>
+                />
+              </template>
 
-              <v-list-item-content>
-                <v-list-item-title>{{ credit.name }}</v-list-item-title>
-                <v-list-item-subtitle>{{ credit.email }}</v-list-item-subtitle>
-              </v-list-item-content>
+              <v-list-item-title>{{ credit.name }}</v-list-item-title>
+              <v-list-item-subtitle>{{ credit.email }}</v-list-item-subtitle>
             </v-list-item>
           </v-list>
         </v-card-text>
@@ -50,9 +43,9 @@
         href="http://github.com/Ericsson/codechecker"
         target="_blank"
       >
-        <v-list-item-avatar>
+        <template #prepend>
           <v-icon>mdi-github</v-icon>
-        </v-list-item-avatar>
+        </template>
         <v-list-item-title>
           CodeChecker @ GitHub
         </v-list-item-title>
@@ -62,9 +55,9 @@
         href="http://github.com/Ericsson/codechecker/issues/new"
         target="_blank"
       >
-        <v-list-item-avatar>
+        <template #prepend>
           <v-icon>mdi-bug</v-icon>
-        </v-list-item-avatar>
+        </template>
         <v-list-item-title>
           Send bug report
         </v-list-item-title>
@@ -73,9 +66,9 @@
       <v-list-item
         @click="openDialog"
       >
-        <v-list-item-avatar>
+        <template #prepend>
           <v-icon>mdi-account-group-outline</v-icon>
-        </v-list-item-avatar>
+        </template>
         <v-list-item-title>
           Credits
         </v-list-item-title>
@@ -84,9 +77,9 @@
       <v-list-item
         :to="{ name: 'userguide' }"
       >
-        <v-list-item-avatar>
+        <template #prepend>
           <v-icon>mdi-information-outline</v-icon>
-        </v-list-item-avatar>
+        </template>
         <v-list-item-title>
           User guide
         </v-list-item-title>
@@ -95,9 +88,9 @@
       <v-list-item
         :to="{ name: 'new-features' }"
       >
-        <v-list-item-avatar>
+        <template #prepend>
           <v-icon>mdi-star-circle-outline</v-icon>
-        </v-list-item-avatar>
+        </template>
         <v-list-item-title>
           New features
         </v-list-item-title>

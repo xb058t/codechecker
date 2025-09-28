@@ -1,23 +1,20 @@
 <template>
   <v-app-bar
-    extension-height="24px"
-    app
+    height="24px"
     color="primary"
     dark
   >
     <template
       v-if="announcement && announcement.length"
-      v-slot:extension
+      #extension
     >
       <v-system-bar
         color="#ff9800"
-        absolute
         height="24px"
-        light
       >
         <v-row>
           <v-col
-            class="py-0"
+            class="py-0" 
             align="center"
           >
             <v-icon>mdi-bullhorn-outline</v-icon>
@@ -30,7 +27,7 @@
     </template>
 
     <v-app-bar-nav-icon>
-      <v-avatar
+      <v-avatar 
         size="36px"
       >
         <img
@@ -47,7 +44,7 @@
     <v-chip
       v-if="currentProductDisplayName"
       class="mx-2"
-      outlined
+      variant="outlined"
     >
       {{ currentProductDisplayName }}
     </v-chip>
@@ -69,9 +66,9 @@
         :class="item.active.includes($route.name) &&
           'v-btn--active router-link-active'"
         :exact="item.exact"
-        text
+        variant="text"
       >
-        <v-icon left>
+        <v-icon start>
           {{ item.icon }}
         </v-icon>
         {{ item.name }}
@@ -80,60 +77,55 @@
 
     <v-menu
       v-if="showConfigItems"
-      offset-y
     >
-      <template v-slot:activator="{ on, attrs }">
+      <template #activator="{ props }">
         <v-btn
-          text
+          v-bind="props"
+          variant="text"
           :class="configureMenuItems.map(c => c.route).includes($route.name) &&
             'v-btn--active router-link-active'"
-          v-bind="attrs"
-          v-on="on"
         >
-          <v-icon left>
+          <v-icon start>
             mdi-cog-outline
           </v-icon>
           Configuration
-          <v-icon right>
+          <v-icon end>
             mdi-menu-down
           </v-icon>
         </v-btn>
       </template>
 
       <v-list>
-        <v-list-item-group color="primary">
-          <v-list-item
-            v-for="item in configureMenuItems"
-            :key="item.title"
-            :to="{ name: item.route }"
-            exact
-          >
-            <v-list-item-avatar class="mr-1">
-              <v-icon>{{ item.icon }}</v-icon>
-            </v-list-item-avatar>
-            <v-list-item-title>{{ item.title }}</v-list-item-title>
-          </v-list-item>
-        </v-list-item-group>
+        <v-list-item
+          v-for="item in configureMenuItems"
+          :key="item.title"
+          :to="{ name: item.route }"
+          exact
+        >
+          <template #prepend>
+            <v-icon>{{ item.icon }}</v-icon>
+          </template>
+          <v-list-item-title>{{ item.title }}</v-list-item-title>
+        </v-list-item>
       </v-list>
     </v-menu>
 
     <v-divider
       v-if="showUserInfo && menuItems.length"
       class="mx-2"
-      inset
       vertical
-      :style="{ display: 'inline' }"
+      style="display:inline"
     />
 
     <user-info-menu
       v-if="showUserInfo"
     />
 
-    <v-menu offset-y>
-      <template v-slot:activator="{ on }">
+    <v-menu>
+      <template #activator="{ props }">
         <v-btn
           icon
-          v-on="on"
+          v-bind="props"
         >
           <v-icon>mdi-dots-vertical</v-icon>
         </v-btn>

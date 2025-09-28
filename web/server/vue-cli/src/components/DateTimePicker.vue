@@ -4,8 +4,9 @@
     :content-class="dialogClass"
     width="400"
   >
-    <template v-slot:activator="{ on }">
+    <template #activator="{ props }">
       <v-text-field
+        v-bind="props"
         :label="label"
         :value="formattedDatetime"
         :class="[ inputClass, 'pa-0', 'ma-0' ]"
@@ -14,7 +15,6 @@
         :dense="dense"
         hide-details
         readonly
-        v-on="on"
       >
         <template #append>
           <slot name="append" />
@@ -28,33 +28,36 @@
           v-model="activeTab"
           fixed-tabs
         >
-          <v-tab>
+          <v-tab value="date">
             <v-icon>mdi-calendar</v-icon>
           </v-tab>
 
           <v-tab
+            value="time"
             :disabled="!date"
           >
             <v-icon>mdi-clock-outline</v-icon>
           </v-tab>
+        </v-tabs>
 
-          <v-tab-item>
+        <v-tabs-window v-model="activeTab">
+          <v-tabs-window-item value="date">
             <v-date-picker
               v-model="date"
               full-width
-              @input="activeTab = 1"
+              @update:model-value="activeTab = 'time'"
             />
-          </v-tab-item>
+          </v-tabs-window-item>
 
-          <v-tab-item>
+          <v-tabs-window-item value="time">
             <v-time-picker
               v-model="time"
               full-width
               use-seconds
               format="24hr"
             />
-          </v-tab-item>
-        </v-tabs>
+          </v-tabs-window-item>
+        </v-tabs-window>
       </v-card-text>
 
       <v-card-actions>
@@ -64,7 +67,7 @@
           color="grey lighten-1"
           class="clear-btn"
           text
-          @click.native="clear"
+          @click="clear"
         >
           Clear
         </v-btn>
@@ -102,7 +105,7 @@ export default {
   data() {
     return {
       dialog: false,
-      activeTab: 0,
+      activeTab: "date",
       date: null,
       time: this.defaultTime
     };
@@ -149,7 +152,7 @@ export default {
         initValue = this.value;
       } else if (typeof this.value === "string" ||
                  this.value instanceof String
-      ) {
+                ) {
         initValue = parse(this.value, this.dateTimeFormat, new Date());
       }
 
@@ -172,7 +175,7 @@ export default {
 
     reset() {
       this.dialog = false;
-      this.activeTab = 0;
+      this.activeTab = "date";
     },
 
     resetDateTimes() {

@@ -17,11 +17,13 @@
       </v-icon>
     </template>
 
-    <template v-slot:no-items>
-      <v-list-item-icon>
-        <v-icon>mdi-alert-outline</v-icon>
-      </v-list-item-icon>
-      At least one run should be selected at Compare to!
+    <template #no-items>
+      <v-list-item>
+        <template #prepend>
+          <v-icon>mdi-alert-outline</v-icon>
+        </template>
+        At least one run should be selected at Compare to!
+      </v-list-item>
     </template>
   </select-option>
 </template>

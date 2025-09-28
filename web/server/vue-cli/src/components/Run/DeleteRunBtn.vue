@@ -15,7 +15,7 @@
         class="delete-run-btn mr-2"
         outlined
         :disabled="!selected.length"
-        v-on="on"
+        v-bind="on"
       >
         <v-icon left>
           mdi-trash-can-outline

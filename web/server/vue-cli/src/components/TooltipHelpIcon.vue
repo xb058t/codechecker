@@ -10,7 +10,7 @@
           :color="color"
           class="ml-1"
           :size="size"
-          v-on="on"
+          v-bind="on"
         >
           mdi-help-circle
         </v-icon>
