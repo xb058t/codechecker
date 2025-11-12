@@ -67,7 +67,9 @@ export const router = _createRouter({
             {
               path: "",
               name: "statistics",
-              redirect: "overview"
+              // redirect: "overview"
+              component: () =>
+                import("@/components/Statistics/Overview/Overview"),
             },
             {
               path: "overview",

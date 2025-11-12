@@ -4,19 +4,18 @@ import {
   endOfMonth, endOfToday, endOfWeek, endOfYear, format, subDays, subMonths,
   subWeeks, subYears
 } from "date-fns";
-import { Line, mixins } from "vue-chartjs";
+import { Line } from "vue-chartjs";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 
 import { ccService, handleThriftError } from "@cc-api";
 import { ReportFilter, Severity } from "@cc/report-server-types";
 import { DateMixin, SeverityMixin } from "@/mixins";
 
-const { reactiveData } = mixins;
 
 export default {
   name: "OutstandingReportsChart",
   extends: Line,
-  mixins: [ DateMixin, reactiveData, SeverityMixin ],
+  mixins: [ DateMixin, SeverityMixin ],
   props: {
     bus: { type: Object, required: true },
     getStatisticsFilters: { type: Function, required: true },
@@ -123,7 +122,7 @@ export default {
   },
 
   activated() {
-    this.bus.$on("refresh", () => this.fetchData(this.dates));
+    this.bus.on("refresh", () => this.fetchData(this.dates));
   },
 
   methods: {

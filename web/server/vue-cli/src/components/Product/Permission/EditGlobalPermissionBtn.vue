@@ -54,7 +54,7 @@ export default {
 
   methods: {
     confirmPermissionChange() {
-      this.bus.$emit("save");
+      this.bus.emit("save");
     }
   }
 };

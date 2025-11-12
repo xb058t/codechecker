@@ -342,7 +342,7 @@ export default {
     },
 
     clearAllFilters() {
-      this.bus.$emit("clear");
+      this.bus.emit("clear");
     },
 
     editReviewStatusRule(rule) {

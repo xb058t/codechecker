@@ -3,7 +3,7 @@
     <h3 class="mb-4 text-center primary--text">
       {{ title }}
     </h3>
-    <v-simple-table
+    <v-table
       height="200px"
       fixed-header
       dense
@@ -52,7 +52,7 @@
           </tr>
         </tbody>
       </template>
-    </v-simple-table>
+    </v-table>
 
     <v-text-field
       v-model="name"

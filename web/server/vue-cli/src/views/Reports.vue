@@ -19,7 +19,7 @@
         v-fill-height
         :headers="tableHeaders"
         :items="formattedReports"
-        v-model:options="pagination"
+        :options.sync="pagination"
         :loading="loading"
         loading-text="Loading reports..."
         :items-length="totalItems"
@@ -366,12 +366,12 @@ export default {
         const reportId = report.reportId ? report.reportId.toString() : "";
         const id = reportId + report.bugHash;
 
-        const detectionStatus =
+        const detectionStatus = 
           this.detectionStatusFromCodeToString(report.detectionStatus);
         const detectedAt = report.detectedAt
-          ? this.$options.filters.prettifyDate(report.detectedAt) : null;
+          // ? this.$options.filters.prettifyDate(report.detectedAt) : null;
         const fixedAt = report.fixedAt
-          ? this.$options.filters.prettifyDate(report.fixedAt) : null;
+          // ? this.$options.filters.prettifyDate(report.fixedAt) : null;
 
         const detectionStatusTitle = [
           `Status: ${detectionStatus}`,

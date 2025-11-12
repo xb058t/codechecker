@@ -24,6 +24,7 @@
             :to="{ ...t.to, query: {
               ...$router.currentRoute.query
             }}"
+            :value="t.to.name" 
             exact
           >
             <v-icon class="mr-2">
@@ -33,13 +34,13 @@
           </v-tab>
         </v-tabs>
 
-        <keep-alive>
+        <!-- <keep-alive> -->
           <router-view
             :bus="bus"
             :namespace="namespace"
             @refresh-filter="setRefreshFilterState(true)"
           />
-        </keep-alive>
+        <!-- </keep-alive> -->
       </div>
     </pane>
   </splitpanes>
@@ -112,7 +113,7 @@ export default {
       refreshFilterState: false,
       reportCount: 0,
       showCompareTo: true,
-      tab: null,
+      tab: this.$route.name,
       tabs: tabs,
       bus: mitt(),
 
@@ -121,7 +122,7 @@ export default {
       // updated.
       refreshTabs: tabs.reduce((map, tab) => {
         const resolve = this.$router.resolve(tab.to);
-        map[resolve.route.name] = false;
+        map[resolve.name] = false;
 
         return map;
       }, {})
@@ -146,19 +147,20 @@ export default {
      */
     tab() {
       if (!this.tab) return;
+      
+      this.showCompareTo = this.tabs
+        .filter(t => t.showCompareTo)
+        .map(t => t.to.name)
+        .includes(this.$route.name);
 
-      this.showCompareTo = this.tabs.filter(
-        tab => tab.showCompareTo
-      ).map(
-        tab => tab.to.name
-      ).includes(
-        this.$router.currentRoute.name
-      );
-
-      const resolve = this.$router.resolve(this.tab);
-      if (this.refreshTabs[resolve.route.name]) {
+      const name = this.tab;
+      if (this.refreshTabs[name]) {
         this.refreshCurrentTab();
       }
+    },
+
+    '$route.name'(n) {
+      this.tab = n;
     }
   },
 
@@ -171,7 +173,7 @@ export default {
 
       this.tabs.forEach(tab => {
         const resolve = this.$router.resolve(tab.to);
-        this.refreshTabs[resolve.route.name] = true;
+        this.refreshTabs[resolve.name] = true;
       });
 
       this.refreshCurrentTab();
@@ -181,10 +183,10 @@ export default {
      * Refresh the current statistics tab.
      */
     refreshCurrentTab() {
-      this.bus.$emit("refresh");
+      this.bus.emit("refresh");
 
       const resolve = this.$router.resolve(this.tab);
-      this.refreshTabs[resolve.route.name] = false;
+      this.refreshTabs[resolve.name] = false;
     },
 
     setRefreshFilterState(state) {

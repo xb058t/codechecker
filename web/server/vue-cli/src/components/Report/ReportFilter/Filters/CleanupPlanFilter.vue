@@ -76,7 +76,7 @@ export default {
 
       // If the source component manager dialog is closed we need to update
       // the filter items to make sure that new items will be shown.
-      this.bus.$emit("update");
+      this.bus.emit("update");
     }
   },
 

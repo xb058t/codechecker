@@ -21,15 +21,27 @@
 
 <script>
 function writeToClipboard(str) {
-  const el = document.createElement("textarea");
-  el.value = str;
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(str).catch(err => {
+      console.error("Clipboard write failed:", err);
+    });
+  } else {
+    const el = document.createElement("textarea");
+    el.value = str;
+    el.style.position = "fixed";
+    el.style.left = "-9999px";
+    document.body.appendChild(el);
+    el.focus();
+    el.select();
 
-  document.body.appendChild(el);
-  el.select();
+    try {
+      document.execCommand("copy");
+    } catch (err) {
+      console.error("Fallback clipboard copy failed:", err);
+    }
 
-  document.execCommand("copy");
-
-  document.body.removeChild(el);
+    document.body.removeChild(el);
+  }
 }
 
 export default {

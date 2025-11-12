@@ -1,6 +1,9 @@
 <template>
   <v-data-table
-    v-bind="{ ...$props, ...$attrs }"
+    v-bind="safeAttrs"
+    :headers="normalizedHeaders"
+    :items="items"
+    :sort-by="normalizedSortBy"
     :disable-pagination="true"
     :hide-default-footer="true"
     :custom-sort="customSort"
@@ -81,7 +84,7 @@
         <router-link
           class="checker-name"
           :to="{ name: 'reports', query: {
-            ...$router.currentRoute.query,
+            ...$router.query,
             ...(item.$queryParams || {}),
             'checker-name': item.checker
           }}"
@@ -97,7 +100,7 @@
           <span v-bind="on">
             <router-link
               :to="{ name: 'reports', query: {
-                ...$router.currentRoute.query,
+                ...$router.query,
                 'source-component': item.component
               }}"
             >
@@ -112,7 +115,7 @@
       <router-link
         class="severity"
         :to="{ name: 'reports', query: {
-          ...$router.currentRoute.query,
+          ...$router.query,
           ...(item.$queryParams || {}),
           'checker-name': item.checker,
           'severity': severityFromCodeToString(item.severity)
@@ -126,7 +129,7 @@
       <router-link
         v-if="item.unreviewed.count"
         :to="{ name: 'reports', query: {
-          ...$router.currentRoute.query,
+          ...$router.query,
           ...(item.$queryParams || {}),
           ...getBaseQueryParams(item),
           'review-status': reviewStatusFromCodeToString(
@@ -147,7 +150,7 @@
       <router-link
         v-if="item.confirmed.count"
         :to="{ name: 'reports', query: {
-          ...$router.currentRoute.query,
+          ...$router.query,
           ...(item.$queryParams || {}),
           ...getBaseQueryParams(item),
           'review-status': reviewStatusFromCodeToString(
@@ -168,7 +171,7 @@
       <router-link
         v-if="item.outstanding.count"
         :to="{ name: 'reports', query: {
-          ...$router.currentRoute.query,
+          ...$router.query,
           ...(item.$queryParams || {}),
           ...getBaseQueryParams(item),
           'review-status': [
@@ -191,7 +194,7 @@
       <router-link
         v-if="item.falsePositive.count"
         :to="{ name: 'reports', query: {
-          ...$router.currentRoute.query,
+          ...$router.query,
           ...(item.$queryParams || {}),
           ...getBaseQueryParams(item),
           'review-status': reviewStatusFromCodeToString(
@@ -212,7 +215,7 @@
       <router-link
         v-if="item.intentional.count"
         :to="{ name: 'reports', query: {
-          ...$router.currentRoute.query,
+          ...$router.query,
           ...(item.$queryParams || {}),
           ...getBaseQueryParams(item),
           'review-status': reviewStatusFromCodeToString(
@@ -233,7 +236,7 @@
       <router-link
         v-if="item.suppressed.count"
         :to="{ name: 'reports', query: {
-          ...$router.currentRoute.query,
+          ...$router.query,
           ...(item.$queryParams || {}),
           ...getBaseQueryParams(item),
           'review-status': [
@@ -256,7 +259,7 @@
       <router-link
         v-if="item.reports.count"
         :to="{ name: 'reports', query: {
-          ...$router.currentRoute.query,
+          ...$router.query,
           ...(item.$queryParams || {}),
           ...getBaseQueryParams(item),
         }}"
@@ -300,7 +303,7 @@
         <router-link
           :to="{ name: 'reports', query: {
             ...uniqueMode,
-            'run': $router.currentRoute.query.run,
+            'run': $router.query.run,
             ...getBaseQueryParams(item),
             'report-status': reportStatusFromCodeToString(ReportStatus.CLOSED)
           }}"
@@ -318,7 +321,7 @@
         <router-link
           :to="{ name: 'reports', query: {
             ...uniqueMode,
-            'run': $router.currentRoute.query.run,
+            'run': $router.query.run,
             ...getBaseQueryParams(item),
             'report-status': reportStatusFromCodeToString(
               ReportStatus.OUTSTANDING
@@ -376,7 +379,7 @@
             <td>
               <router-link
                 :to="{ name: 'reports', query: {
-                  ...$router.currentRoute.query,
+                  ...$router.query,
                   ...(item.$queryParams || {}),
                   'checker-name': checker.name
                 }}"
@@ -478,7 +481,7 @@
               <router-link
                 :to="{ name: 'reports', query: {
                   ...uniqueMode,
-                  'run': $router.currentRoute.query.run,
+                  'run': $router.query.run,
                   ...getBaseQueryParams({
                     checker: checker.name,
                     severity: checker.severity}),
@@ -514,7 +517,7 @@
               <router-link
                 :to="{ name: 'reports', query: {
                   ...uniqueMode,
-                  'run': $router.currentRoute.query.run,
+                  'run': $router.query.run,
                   ...getBaseQueryParams({
                     checker: checker.name,
                     severity: checker.severity}),
@@ -549,7 +552,7 @@
     </template>
 
     <template
-      v-for="(_, slot) of $scopedSlots"
+      v-for="(_, slot) of $slots"
       v-slot:[slot]="scope"
     >
       <slot :name="slot" v-bind="scope" />
@@ -580,6 +583,7 @@ import ReportDiffCount from "./ReportDiffCount";
 
 export default {
   name: "BaseStatisticsTable",
+  inheritAttrs: false,     
   components: {
     CountChips,
     DetectionStatusIcon,
@@ -595,8 +599,11 @@ export default {
     SeverityMixin
   ],
   props: {
+    headers: { type: Array, required: true },
     items: { type: Array, required: true },
     colspan: { type: Number, default: 2 },
+    sortBy:   { type: [String, Array], default: () => [] },
+    sortDesc: { type: [Boolean, Array], default: false },
     totalColumns: {
       type: Array,
       default: () => [ "unreviewed", "confirmed", "outstanding",
@@ -612,6 +619,26 @@ export default {
     };
   },
   computed: {
+    safeAttrs() {
+      const { headers, ...rest } = this.$attrs;
+      return rest;
+    },
+    normalizedHeaders() {
+      return (this.headers || []).map(h =>
+        h.value && !h.key ? { ...h, key: h.value } : h
+      );
+    },
+    normalizedSortBy() {
+      if (Array.isArray(this.sortBy)) return this.sortBy;
+      if (typeof this.sortBy === 'string' && this.sortBy) {
+        const desc = Array.isArray(this.sortDesc)
+          ? !!this.sortDesc[0]
+          : !!this.sortDesc;
+        return [{ key: this.sortBy, order: desc ? 'desc' : 'asc' }];
+      }
+      return [];
+    },
+    
     total() {
       const initVal = this.totalColumns.reduce((acc, curr) => {
         acc[curr] = 0;
@@ -625,15 +652,30 @@ export default {
     },
 
     uniqueMode() {
-      if ( this.$router.currentRoute.query["is-unique"] !== undefined ) {
+      if ( this.$router.query["is-unique"] !== undefined ) {
         return {
-          "is-unique": this.$router.currentRoute.query["is-unique"]
+          "is-unique": this.$route.query["is-unique"]
         };
       }
       else return {};
     }
   },
   methods: {
+     customSort(items, sortBy /* [{key,order}] */) {
+      if (!sortBy?.length) return items;
+      const [{ key, order }] = sortBy;
+
+      const sorted = [...items].sort((a, b) => {
+        const av = a?.[key];
+        const bv = b?.[key];
+        if (av < bv) return -1;
+        if (av > bv) return 1;
+        return 0;
+      });
+
+      return order === "desc" ? sorted.reverse() : sorted;
+    },
+
     getBaseQueryParams({ checker, component, severity }) {
       const query = {};
 

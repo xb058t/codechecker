@@ -4,14 +4,15 @@
     content-class="report-info-dialog"
     max-width="600px"
   >
-    <template v-slot:activator="{ on }">
+
+    <template #activator="{ props }">
       <v-container fluid class="px-0">
         <v-row>
           <v-col
             cols="auto"
             class="pa-0 mx-4"
           >
-            <slot :on="on" />
+            <slot name="default" :props="props" />
           </v-col>
         </v-row>
       </v-container>
@@ -49,6 +50,13 @@ export default {
   props: {
     value: { type: Object, default: null }
   },
+  computed: {
+    model: {
+      get() { return this.modelValue },
+      set(v) { this.$emit("update:value", v) }
+    }
+  },
+  emits: ["update:value"],
   data() {
     return {
       dialog: false

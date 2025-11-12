@@ -72,7 +72,7 @@
 
       <template v-slot:content>
         <v-card>
-          <v-simple-table dense>
+          <v-table dense>
             <template v-slot:default>
               <thead>
                 <tr>
@@ -97,7 +97,7 @@
                 </tr>
               </tbody>
             </template>
-          </v-simple-table>
+          </v-table>
 
           <v-card-text>
             <v-form ref="newPersonalAccessTokenForm">

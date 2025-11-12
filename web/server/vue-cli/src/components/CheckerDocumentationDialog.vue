@@ -66,7 +66,7 @@ export default {
     SeverityIcon
   },
   props: {
-    value: { type: Boolean, required: true },
+    value: { type: Boolean, required: false },
     checker: { type: Checker, default: null }
   },
   data() {

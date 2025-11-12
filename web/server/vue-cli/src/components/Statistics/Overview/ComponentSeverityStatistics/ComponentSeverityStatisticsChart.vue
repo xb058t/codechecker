@@ -1,23 +1,21 @@
 <script>
-import { Pie, mixins } from "vue-chartjs";
+import { Pie } from "vue-chartjs";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { Severity } from "@cc/report-server-types";
 import { SeverityMixin } from "@/mixins";
 
-const { reactiveData } = mixins;
-
 export default {
   name: "ComponentSeverityStatisticsChart",
   extends: Pie,
-  mixins: [ reactiveData, SeverityMixin ],
+  mixins: [ SeverityMixin ],
   props: {
     statistics: { type: Array, required: true },
-    loading: { type: Boolean, required: true }
+    loading:    { type: Boolean, required: true }
   },
   data() {
     const severities = [
-      Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW,
-      Severity.STYLE, Severity.UNSPECIFIED
+      Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM,
+      Severity.LOW, Severity.STYLE, Severity.UNSPECIFIED
     ];
 
     const labels = severities.map(s => this.severityFromCodeToString(s));
@@ -26,32 +24,26 @@ export default {
     return {
       severities,
       options: {
-        legend: {
-          display: true,
-          position: "bottom"
-        },
-        responsive: true,
+        legend: { display: true, position: "bottom" },
+        responsive: false,
         maintainAspectRatio: false,
-        plugins: {
-          datalabels: {
-            backgroundColor: colors
-          }
-        }
+        animation: { duration: 0 },
+        hover: { animationDuration: 0 },
+        responsiveAnimationDuration: 0,
+        plugins: { datalabels: { backgroundColor: colors } }
       },
       chartData: {
-        labels: labels,
+        labels,
         datasets: [
           {
-            data: [],
+            data: Array(labels.length).fill(0),
             backgroundColor: colors,
             datalabels: {
               color: "white",
               borderColor: "white",
               borderRadius: 25,
               borderWidth: 2,
-              font: {
-                weight: "bold"
-              },
+              font: { weight: "bold" }
             }
           }
         ]
@@ -59,23 +51,52 @@ export default {
     };
   },
   watch: {
-    loading() {
-      if (this.loading) return;
-
-      this.chartData.datasets[0].data = this.statistics.reduce((acc, curr) => {
-        this.chartData.labels.forEach((s, idx) => {
-          acc[idx] += curr[s.toLowerCase()].count;
-        });
-
-        return acc;
-      }, new Array(this.chartData.labels.length).fill(0));
-      this.renderChart(this.chartData, this.options);
+    loading(val) {
+      if (!val) this.applyStatistics();
+    },
+    statistics() {
+      if (!this.loading) this.applyStatistics();
     }
   },
+
   mounted() {
     this.addPlugin(ChartDataLabels);
+    
+    this.$nextTick(() => {
+      if (!this.$refs?.canvas) return;
+      this.renderChart(this.chartData, this.options);
+      if (!this.loading) this.applyStatistics();
+    });
+  },
+  methods: {
+    applyStatistics() {
+      const labels = this.chartData.labels;
+      const next = new Array(labels.length).fill(0);
 
-    this.renderChart(this.chartData, this.options);
+      if (Array.isArray(this.statistics)) {
+        for (const row of this.statistics) {
+          for (let i = 0; i < labels.length; i++) {
+            const key = labels[i].toLowerCase();
+            next[i] += row?.[key]?.count ?? 0;
+          }
+        }
+      }
+
+      const cur = this.chartData.datasets[0].data;
+      let changed = cur.length !== next.length;
+      if (!changed) {
+        for (let i = 0; i < cur.length; i++) {
+          if (cur[i] !== next[i]) { changed = true; break; }
+        }
+      }
+      if (!changed) return;
+
+      cur.splice(0, cur.length, ...next);
+
+      if (this._chart && this._chart.ctx) {
+        try { this._chart.update(0); } catch {}
+      }
+    }
   }
 };
 </script>

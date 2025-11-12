@@ -2,16 +2,11 @@
   <v-btn
     class="show-report-info-btn"
     color="primary"
-    outlined
-    small
-    v-bind="on"
+    variant="outlined"
+    size="small"
+    v-bind="$attrs"
   >
-    <v-icon
-      class="mr-1"
-      small
-    >
-      mdi-help-circle-outline
-    </v-icon>
+    <v-icon size="small" class="me-1">mdi-help-circle-outline</v-icon>
     Report info
   </v-btn>
 </template>
@@ -19,8 +14,6 @@
 <script>
 export default {
   name: "ReportInfoButton",
-  props: {
-    on: { type: Object, default: null }
-  },
+  inheritAttrs: false,
 };
 </script>

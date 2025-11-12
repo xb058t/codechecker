@@ -332,7 +332,7 @@ export default {
     applyTagSelection() {
       this.selectTagMenu = false;
       this.prevSelectedTagItems.forEach(t => {
-        this.bus.$emit("select", item => item.runIds.includes(t.runId));
+        this.bus.emit("select", item => item.runIds.includes(t.runId));
       });
     },
 

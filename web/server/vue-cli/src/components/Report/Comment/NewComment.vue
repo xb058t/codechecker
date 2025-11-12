@@ -58,7 +58,7 @@ export default {
       const commentData = new CommentData({ message: this.message });
       ccService.getClient().addComment(this.report.reportId, commentData,
         handleThriftError(() => {
-          this.bus.$emit("update:comments");
+          this.bus.emit("update:comments");
           this.message = null;
           this.loading = false;
         }));

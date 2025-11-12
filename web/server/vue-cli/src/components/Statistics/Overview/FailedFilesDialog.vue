@@ -26,7 +26,7 @@
       <v-card-text class="pa-0">
         <v-card :loading="loading" flat>
           <v-container>
-            <v-simple-table>
+            <v-table>
               <template v-slot:default>
                 <thead>
                   <tr>
@@ -60,7 +60,7 @@
                   </tr>
                 </tbody>
               </template>
-            </v-simple-table>
+            </v-table>
           </v-container>
         </v-card>
       </v-card-text>

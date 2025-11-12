@@ -17,9 +17,14 @@
               class="pa-0 mr-2"
               align-self="center"
             >
-              <show-report-info-dialog v-model="report">
+              <!-- <show-report-info-dialog v-model="report">
                 <template #default="{ on }">
                   <report-info-button :on="on" />
+                </template>
+              </show-report-info-dialog> -->
+              <show-report-info-dialog v-model="report">
+                <template #default="{ props }">
+                  <report-info-button v-bind="props" />
                 </template>
               </show-report-info-dialog>
             </v-col>
@@ -342,7 +347,7 @@ export default {
 
   data() {
     const enableBlameView =
-      this.$router.currentRoute.query["view"] === "blame";
+      this.$route.query["view"] === "blame";
 
     return {
       report: null,
@@ -465,7 +470,7 @@ export default {
       this.init(this.treeItem);
     }
 
-    this.bus.$on("jpmToPrevReport", attrs => {
+    this.bus.on("jpmToPrevReport", attrs => {
       this.loadReportStep(this.report, {
         stepId: attrs.$id,
         fileId: attrs.fileId,
@@ -473,7 +478,7 @@ export default {
       });
     });
 
-    this.bus.$on("jpmToNextReport", attrs => {
+    this.bus.on("jpmToNextReport", attrs => {
       this.loadReportStep(this.report, {
         stepId: attrs.$id,
         fileId: attrs.fileId,
@@ -481,7 +486,7 @@ export default {
       });
     });
 
-    this.bus.$on("showDocumentation", () => {
+    this.bus.on("showDocumentation", () => {
       this.selectedChecker = new Checker({
         analyzerName: this.report.analyzerName,
         checkerId: this.report.checkerId

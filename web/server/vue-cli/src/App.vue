@@ -2,11 +2,11 @@
   <v-app id="app">
     <the-header />
 
-    <v-main>
+    <v-main style="margin-top: 64px;">
       <router-view v-slot="{ Component }">
-        <keep-alive :include="keepAliveList">
+        <!-- <keep-alive :include="keepAliveList"> -->
           <component :is="Component" />
-        </keep-alive>
+        <!-- </keep-alive> -->
       </router-view>
       <errors />
     </v-main>

@@ -165,7 +165,7 @@ export default {
     };
   },
   activated() {
-    this.bus.$on("refresh", () => this.fetchValues());
+    this.bus.on("refresh", () => this.fetchValues());
   },
   methods: {
     fetchValues() {

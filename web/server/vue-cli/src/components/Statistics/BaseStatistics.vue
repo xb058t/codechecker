@@ -2,6 +2,8 @@
 import { mapState } from "vuex";
 import { CompareData, DiffType, ReportFilter } from "@cc/report-server-types";
 
+import mitt from "mitt";
+
 export default {
   name: "BaseStatistics",
   props: {
@@ -29,11 +31,11 @@ export default {
   },
 
   activated() {
-    this.bus.$on("refresh", this.fetchStatistics);
+    this.bus.on("refresh", this.fetchStatistics);
   },
 
   deactivated() {
-    this.bus.$off("refresh", this.fetchStatistics);
+    this.bus.off("refresh", this.fetchStatistics);
   },
 
   mounted() {

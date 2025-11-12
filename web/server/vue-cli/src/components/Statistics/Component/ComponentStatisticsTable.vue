@@ -19,7 +19,7 @@
     </template>
 
     <template
-      v-for="(_, slot) of $scopedSlots"
+      v-for="(_, slot) of $slots"
       v-slot:[slot]="scope"
     >
       <slot :name="slot" v-bind="scope" />

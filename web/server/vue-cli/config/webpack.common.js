@@ -67,6 +67,9 @@ module.exports = {
       '@cc/shared-types': join('codechecker-api', 'lib', 'codechecker_api_shared_types.js'),
       'thrift': join('thrift', 'lib', 'nodejs', 'lib', 'thrift', 'browser.js'),
       // 'Vuetify': join('vuetify', 'lib', 'components')
+      'vue-chartjs$': helpers.root('src', 'shims', 'vue-chartjs-vue3-compat.js'),
+      'vue-chartjs/dist/BaseCharts.js$': helpers.root('src', 'shims', 'vue-chartjs-vue3-compat.js'),
+      'vue-chartjs/es/BaseCharts.js$': helpers.root('src', 'shims', 'vue-chartjs-vue3-compat.js'),
     }
   },
   module: {

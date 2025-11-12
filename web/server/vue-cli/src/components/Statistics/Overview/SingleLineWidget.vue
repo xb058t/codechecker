@@ -51,7 +51,7 @@ export default {
     };
   },
   activated() {
-    this.bus.$on("refresh", () => this.fetchValue());
+    this.bus.on("refresh", () => this.fetchValue());
   },
   methods: {
     async fetchValue() {

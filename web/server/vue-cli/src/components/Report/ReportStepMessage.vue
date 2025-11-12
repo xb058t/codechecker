@@ -118,12 +118,12 @@ export default {
   methods: {
     showPrevReport() {
       if (this.prevStep && this.bus)
-        this.bus.$emit("jpmToPrevReport", this.prevStep);
+        this.bus.emit("jpmToPrevReport", this.prevStep);
     },
 
     showNextReport() {
       if (this.nextStep && this.bus)
-        this.bus.$emit("jpmToNextReport", this.nextStep);
+        this.bus.emit("jpmToNextReport", this.nextStep);
     },
 
     showDocumentation() {

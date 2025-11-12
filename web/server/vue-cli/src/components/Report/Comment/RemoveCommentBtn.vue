@@ -22,7 +22,7 @@ export default {
   },
   methods: {
     removeComment() {
-      this.bus.$emit("remove:comment", this.comment);
+      this.bus.emit("remove:comment", this.comment);
     }
   }
 };
