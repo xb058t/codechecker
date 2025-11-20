@@ -3,7 +3,7 @@ const HTMLWebpackPlugin = require('html-webpack-plugin');
 const { VueLoaderPlugin } = require('vue-loader');
 const VuetifyLoaderPlugin = require('vuetify-loader/lib/plugin');
 const { DefinePlugin, ProvidePlugin } = require('webpack');
-const ESLintPlugin = require('eslint-webpack-plugin');
+// const ESLintPlugin = require('eslint-webpack-plugin');
 
 const { join } = require('path');
 
@@ -169,10 +169,10 @@ module.exports = {
     new ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],
     }),
-    new ESLintPlugin({
-      extensions: ['js', 'vue'],
-      overrideConfigFile: './.eslintrc.js'
-    }),
+    // new ESLintPlugin({
+    //   extensions: ['js', 'vue'],
+    //   overrideConfigFile: './.eslintrc.js'
+    // }),
     new VueLoaderPlugin(),
     new VuetifyLoaderPlugin(),
     new HTMLWebpackPlugin({
