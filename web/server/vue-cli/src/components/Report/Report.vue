@@ -269,7 +269,8 @@
 </template>
 
 <script>
-import Vue from "vue";
+import { createApp } from "vue";
+import mitt from "mitt";
 
 import CodeMirror from "codemirror";
 import "codemirror/lib/codemirror.css";
@@ -317,7 +318,6 @@ import SelectSameReport from "./SelectSameReport";
 import { ReportInfoButton, ShowReportInfoDialog } from "./ReportInfo";
 
 import ReportStepMessage from "./ReportStepMessage";
-const ReportStepMessageClass = Vue.extend(ReportStepMessage);
 
 export default {
   name: "Report",
@@ -360,7 +360,7 @@ export default {
       showComments: false,
       commentCols: 3,
       loading: true,
-      bus: new Vue(),
+      bus: mitt(),
       annotation: null,
       selectedChecker: null,
       analysisInfoDialog: false,
@@ -467,7 +467,7 @@ export default {
       this.init(this.treeItem);
     }
 
-    this.bus.$on("jpmToPrevReport", attrs => {
+    this.bus.on("jpmToPrevReport", attrs => {
       this.loadReportStep(this.report, {
         stepId: attrs.$id,
         fileId: attrs.fileId,
@@ -475,7 +475,7 @@ export default {
       });
     });
 
-    this.bus.$on("jpmToNextReport", attrs => {
+    this.bus.on("jpmToNextReport", attrs => {
       this.loadReportStep(this.report, {
         stepId: attrs.$id,
         fileId: attrs.fileId,
@@ -483,7 +483,7 @@ export default {
       });
     });
 
-    this.bus.$on("showDocumentation", () => {
+    this.bus.on("showDocumentation", () => {
       this.selectedChecker = new Checker({
         analyzerName: this.report.analyzerName,
         checkerId: this.report.checkerId
@@ -582,15 +582,15 @@ export default {
 
     highlightReport() {
       this.lineWidgets.forEach(widget => {
-        const type = widget.node.getAttribute("type");
-        widget.node.classList.toggle("current", type === "error");
+        const type = widget.widget.node.getAttribute("type");
+        widget.widget.node.classList.toggle("current", type === "error");
       });
     },
 
     highlightCurrentBubble(id) {
       this.lineWidgets.forEach(widget => {
-        const stepId = widget.node.getAttribute("step-id");
-        widget.node.classList.toggle("current", stepId === id);
+        const stepId = widget.widget.node.getAttribute("step-id");
+        widget.widget.node.classList.toggle("current", stepId === id);
       });
     },
 
@@ -722,7 +722,10 @@ export default {
 
     clearBubbles() {
       this.editor.operation(() => {
-        this.lineWidgets.forEach(widget => widget.clear());
+        this.lineWidgets.forEach(widget => {
+          widget.widget.clear();
+          widget.app.unmount();
+        });
       });
 
       this.lineWidgets = [];
@@ -741,20 +744,23 @@ export default {
       const marginLeft =
         this.editor.defaultCharWidth() * element.startCol + "px";
 
-      const widget = new ReportStepMessageClass({
-        propsData: {
-          ...props,
-          id: element.$id,
-          value: element.$message,
-          marginLeft: marginLeft,
-          report: this.report
-        }
-      });
-      widget.$vuetify = this.$vuetify;
-      widget.$mount();
+      const container = document.createElement("div");
 
-      this.lineWidgets.push(this.editor.addLineWidget(
-        element.startLine.toNumber() - 1, widget.$el));
+      const app = createApp(ReportStepMessage, {
+        ...props,
+        id: element.$id,
+        value: element.$message,
+        marginLeft: marginLeft,
+        report: this.report
+      });
+
+      app.config.globalProperties.$vuetify = this.$vuetify;
+      app.mount(container);
+
+      const widget = this.editor.addLineWidget(
+        element.startLine.toNumber() - 1, container);
+
+      this.lineWidgets.push({ widget, app });
     },
 
     renderMainWarning(events) {

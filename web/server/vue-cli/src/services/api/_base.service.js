@@ -1,4 +1,4 @@
-import Vue from "vue";
+import mitt from "mitt";
 import {
   TBufferedTransport,
   TJSONProtocol,
@@ -19,7 +19,7 @@ const port = parseInt(process.env.CC_SERVER_PORT, 10) ||
   parseInt(window.location.port, 10);
 const api = process.env.CC_API_VERSION;
 
-const eventHub = new Vue();
+const eventHub = mitt();
 
 class BaseService {
   constructor(serviceName, serviceClass) {
@@ -28,7 +28,7 @@ class BaseService {
     this._client = this.createClient();
 
     // Event which can be used to update client on route changes.
-    eventHub.$on("update", endpoint => {
+    eventHub.on("update", endpoint => {
       this._client = this.createClient(endpoint);
     });
   }

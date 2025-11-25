@@ -52,7 +52,7 @@
 </template>
 
 <script>
-import Vue from "vue";
+import mitt from "mitt";
 import { formatDistanceToNow, parse } from "date-fns";
 
 import { CommentData } from "@cc/report-server-types";
@@ -70,7 +70,7 @@ export default {
   },
   props: {
     comment: { type: CommentData, required: true },
-    bus: { type: Vue, required: true }
+    bus: { type: Object, required: true }
   },
   computed: {
     message() {

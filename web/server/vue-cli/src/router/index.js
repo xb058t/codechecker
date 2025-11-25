@@ -1,10 +1,8 @@
-import Vue from "vue";
-import Router from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 
-Vue.use(Router);
+export default createRouter({
+  history: createWebHistory(),
 
-export default new Router({
-  mode: "history",
   routes: [
     {
       path: "/",
@@ -42,8 +40,8 @@ export default new Router({
       component: () => import("@/views/NotFound")
     },
     {
-      // Should be kept in sync with the regex from is_valid_product_endpoint
-      // on the backend.
+        // Should be kept in sync with the regex from is_valid_product_endpoint
+        // on the backend.
       path: "/:endpoint([A-Za-z0-9_-]+)",
       meta: {
         requiresAuth: true

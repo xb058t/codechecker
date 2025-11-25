@@ -85,7 +85,7 @@
 </template>
 
 <script>
-import Vue from "vue";
+import mitt from "mitt";
 
 import { handleThriftError, prodService } from "@cc-api";
 import {
@@ -119,7 +119,7 @@ export default {
       isValid: false,
       success: false,
       error: false,
-      bus: new Vue()
+      bus: mitt()
     };
   },
   watch: {
@@ -150,7 +150,7 @@ export default {
         }));
 
       // Save permissions.
-      this.bus.$emit("save");
+      this.bus.emit("save");
     }
   }
 };

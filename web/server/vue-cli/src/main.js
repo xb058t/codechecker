@@ -45,7 +45,7 @@ router.beforeResolve((to, from, next) => {
   if (from.params.endpoint === undefined ||
       to.params.endpoint !== from.params.endpoint
   ) {
-    eventHub.$emit("update", to.params.endpoint);
+    eventHub.emit("update", to.params.endpoint);
   }
 
   // To be backward compatible with the old UI url format we will convert old

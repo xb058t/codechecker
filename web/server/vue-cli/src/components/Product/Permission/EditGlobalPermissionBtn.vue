@@ -31,7 +31,7 @@
 </template>
 
 <script>
-import Vue from "vue";
+import mitt from "mitt";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EditGlobalPermission from "./EditGlobalPermission";
@@ -46,13 +46,13 @@ export default {
   data() {
     return {
       dialog: false,
-      bus: new Vue()
+      bus: mitt()
     };
   },
 
   methods: {
     confirmPermissionChange() {
-      this.bus.$emit("save");
+      this.bus.emit("save");
     }
   }
 };

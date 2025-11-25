@@ -139,7 +139,7 @@
 </template>
 
 <script>
-import Vue from "vue";
+import mitt from "mitt";
 
 import { ccService, handleThriftError } from "@cc-api";
 import {
@@ -194,7 +194,7 @@ export default {
       editDialog: false,
       removeDialog: false,
       removeFilteredRuleDialog: false,
-      bus: new Vue(),
+      bus: mitt(),
       headers: [
         {
           text: "Report hash",
@@ -340,7 +340,7 @@ export default {
     },
 
     clearAllFilters() {
-      this.bus.$emit("clear");
+      this.bus.emit("clear");
     },
 
     editReviewStatusRule(rule) {
