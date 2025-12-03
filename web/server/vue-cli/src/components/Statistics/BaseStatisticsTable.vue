@@ -626,9 +626,9 @@ export default {
     },
 
     uniqueMode() {
-      if ( this.$router.currentRoute.query["is-unique"] !== undefined ) {
+      if ( this.$route.query["is-unique"] !== undefined ) {
         return {
-          "is-unique": this.$router.currentRoute.query["is-unique"]
+          "is-unique": this.$route.query["is-unique"]
         };
       }
       else return {};

@@ -140,8 +140,8 @@ export default {
   },
 
   mounted() {
-    const reportId = this.$router.currentRoute.query["report-id"];
-    const reportHash = this.$router.currentRoute.query["report-hash"];
+    const reportId = this.$route.query["report-id"];
+    const reportHash = this.$route.query["report-hash"];
     this.loadReport(reportId, reportHash);
   },
 
@@ -184,7 +184,7 @@ export default {
         ord: Order.ASC
       });
 
-      const filePath = this.$router.currentRoute.query["report-filepath"];
+      const filePath = this.$route.query["report-filepath"];
       const reportFilter = new ReportFilter({
         ...this.reportFilter,
         isUnique: false,
@@ -205,7 +205,7 @@ export default {
 
     updateUrl() {
       const reportId = this.report.reportId.toString();
-      const currentReportId = this.$router.currentRoute.query["report-id"];
+      const currentReportId = this.$route.query["report-id"];
       if (reportId !== currentReportId) {
         this.$router.replace({
           query: {

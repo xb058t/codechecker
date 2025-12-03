@@ -143,7 +143,7 @@ export default {
   data() {
     const last7Days = subDays(endOfToday(), 7);
     const last31Days = subDays(endOfToday(), 31);
-    const runName = this.$router.currentRoute.query["run"];
+    const runName = this.$route.query["run"];
 
     const cols = [
       { label: "Today",  date: [ startOfToday(), endOfToday() ] },

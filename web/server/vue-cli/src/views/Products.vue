@@ -92,7 +92,7 @@
           {{ item.runCount }}
         </v-chip>
       </template>
-
+      
       <template #item.latestStoreToProduct="{ item }">
         <v-chip
           v-if="item.latestStoreToProduct"
@@ -103,7 +103,7 @@
           <v-icon left>
             mdi-calendar-range
           </v-icon>
-          {{ item.latestStoreToProduct | prettifyDate }}
+          {{ prettifyDate(item.latestStoreToProduct) }}
         </v-chip>
       </template>
 
@@ -155,9 +155,9 @@ export default {
 
   data() {
     const itemsPerPageOptions = [ 25 ];
-    const sortBy = this.$router.currentRoute.query["sort-by"];
-    const sortDesc = this.$router.currentRoute.query["sort-desc"];
-    const page = parseInt(this.$router.currentRoute.query["page"]) || 1;
+    const sortBy = this.$route.query["sort-by"];
+    const sortDesc = this.$route.query["sort-desc"];
+    const page = parseInt(this.$route.query["page"]) || 1;
 
     return {
       DBStatus,
@@ -250,7 +250,7 @@ export default {
   },
 
   created() {
-    this.productNameSearch = this.$router.currentRoute.query["name"] || null;
+    this.productNameSearch = this.$route.query["name"] || null;
 
     authService.getClient().hasPermission(Permission.SUPERUSER, "",
       handleThriftError(isSuperUser => {

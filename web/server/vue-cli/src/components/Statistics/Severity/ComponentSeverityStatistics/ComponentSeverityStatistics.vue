@@ -26,58 +26,197 @@
             :filters="statisticsFilters"
             :total-columns="totalColumns"
           >
-            <template
-              v-for="item in [
-                ['critical', Severity.CRITICAL],
-                ['high', Severity.HIGH],
-                ['medium', Severity.MEDIUM],
-                ['low', Severity.LOW],
-                ['style', Severity.STYLE],
-                ['unspecified', Severity.UNSPECIFIED],
-              ]"
-              v-slot:[`header.${item[0]}.count`]="{ header }"
-            >
-              <span :key="item[0]">
-                <severity-icon :status="item[1]" :size="16" />
+            <template v-slot:header.critical.count="{ header }">
+              <span>
+                <severity-icon :status="Severity.CRITICAL" :size="16" />
                 {{ header.text }}
               </span>
             </template>
 
-            <template
-              v-for="i in [
-                ['critical', Severity.CRITICAL],
-                ['high', Severity.HIGH],
-                ['medium', Severity.MEDIUM],
-                ['low', Severity.LOW],
-                ['style', Severity.STYLE],
-                ['unspecified', Severity.UNSPECIFIED],
-              ]"
-              v-slot:[`item.${i[0]}.count`]="{ item }"
-            >
-              <span :key="i[0]">
+            <template v-slot:header.high.count="{ header }">
+              <span>
+                <severity-icon :status="Severity.HIGH" :size="16" />
+                {{ header.text }}
+              </span>
+            </template>
+
+            <template v-slot:header.medium.count="{ header }">
+              <span>
+                <severity-icon :status="Severity.MEDIUM" :size="16" />
+                {{ header.text }}
+              </span>
+            </template>
+
+            <template v-slot:header.low.count="{ header }">
+              <span>
+                <severity-icon :status="Severity.LOW" :size="16" />
+                {{ header.text }}
+              </span>
+            </template>
+
+            <template v-slot:header.style.count="{ header }">
+              <span>
+                <severity-icon :status="Severity.STYLE" :size="16" />
+                {{ header.text }}
+              </span>
+            </template>
+
+            <template v-slot:header.unspecified.count="{ header }">
+              <span>
+                <severity-icon :status="Severity.UNSPECIFIED" :size="16" />
+                {{ header.text }}
+              </span>
+            </template>
+
+            <template #item.critical.count="{ item }">
+              <span>
                 <router-link
-                  v-if="item[i[0]].count"
+                  v-if="item.critical.count"
                   :to="{ name: 'reports', query: {
                     ...$router.currentRoute.query,
                     ...(item.$queryParams || {}),
                     'source-component': item.component,
-                    'severity': severityFromCodeToString(i[1])
+                    'severity': severityFromCodeToString(Severity.CRITICAL)
                   }}"
                 >
-                  {{ item[i[0]].count }}
+                  {{ item.critical.count }}
                 </router-link>
 
                 <report-diff-count
-                  :num-of-new-reports="item[i[0]].new"
-                  :num-of-resolved-reports="item[i[0]].resolved"
+                  :num-of-new-reports="item.critical.new"
+                  :num-of-resolved-reports="item.critical.resolved"
                   :extra-query-params="{
                     'source-component': item.component,
-                    'severity': severityFromCodeToString(i[1])
+                    'severity': severityFromCodeToString(Severity.CRITICAL)
                   }"
                 />
               </span>
             </template>
 
+            <template #item.high.count="{ item }">
+              <span>
+                <router-link
+                  v-if="item.high.count"
+                  :to="{ name: 'reports', query: {
+                    ...$router.currentRoute.query,
+                    ...(item.$queryParams || {}),
+                    'source-component': item.component,
+                    'severity': severityFromCodeToString(Severity.HIGH)
+                  }}"
+                >
+                  {{ item.high.count }}
+                </router-link>
+
+                <report-diff-count
+                  :num-of-new-reports="item.high.new"
+                  :num-of-resolved-reports="item.high.resolved"
+                  :extra-query-params="{
+                    'source-component': item.component,
+                    'severity': severityFromCodeToString(Severity.HIGH)
+                  }"
+                />
+              </span>
+            </template>
+
+            <template #item.medium.count="{ item }">
+              <span>
+                <router-link
+                  v-if="item.medium.count"
+                  :to="{ name: 'reports', query: {
+                    ...$router.currentRoute.query,
+                    ...(item.$queryParams || {}),
+                    'source-component': item.component,
+                    'severity': severityFromCodeToString(Severity.MEDIUM)
+                  }}"
+                >
+                  {{ item.medium.count }}
+                </router-link>
+
+                <report-diff-count
+                  :num-of-new-reports="item.medium.new"
+                  :num-of-resolved-reports="item.medium.resolved"
+                  :extra-query-params="{
+                    'source-component': item.component,
+                    'severity': severityFromCodeToString(Severity.MEDIUM)
+                  }"
+                />
+              </span>
+            </template>
+
+            <template #item.low.count="{ item }">
+              <span>
+                <router-link
+                  v-if="item.low.count"
+                  :to="{ name: 'reports', query: {
+                    ...$router.currentRoute.query,
+                    ...(item.$queryParams || {}),
+                    'source-component': item.component,
+                    'severity': severityFromCodeToString(Severity.LOW)
+                  }}"
+                >
+                  {{ item.low.count }}
+                </router-link>
+
+                <report-diff-count
+                  :num-of-new-reports="item.low.new"
+                  :num-of-resolved-reports="item.low.resolved"
+                  :extra-query-params="{
+                    'source-component': item.component,
+                    'severity': severityFromCodeToString(Severity.LOW)
+                  }"
+                />
+              </span>
+            </template>
+
+            <template #item.style.count="{ item }">
+              <span>
+                <router-link
+                  v-if="item.style.count"
+                  :to="{ name: 'reports', query: {
+                    ...$router.currentRoute.query,
+                    ...(item.$queryParams || {}),
+                    'source-component': item.component,
+                    'severity': severityFromCodeToString(Severity.STYLE)
+                  }}"
+                >
+                  {{ item.style.count }}
+                </router-link>
+
+                <report-diff-count
+                  :num-of-new-reports="item.style.new"
+                  :num-of-resolved-reports="item.style.resolved"
+                  :extra-query-params="{
+                    'source-component': item.component,
+                    'severity': severityFromCodeToString(Severity.STYLE)
+                  }"
+                />
+              </span>
+            </template>
+
+            <template #item.unspecified.count="{ item }">
+              <span>
+                <router-link
+                  v-if="item.unspecified.count"
+                  :to="{ name: 'reports', query: {
+                    ...$router.currentRoute.query,
+                    ...(item.$queryParams || {}),
+                    'source-component': item.component,
+                    'severity': severityFromCodeToString(Severity.UNSPECIFIED)
+                  }}"
+                >
+                  {{ item.unspecified.count }}
+                </router-link>
+
+                <report-diff-count
+                  :num-of-new-reports="item.unspecified.new"
+                  :num-of-resolved-reports="item.unspecified.resolved"
+                  :extra-query-params="{
+                    'source-component': item.component,
+                    'severity': severityFromCodeToString(Severity.UNSPECIFIED)
+                  }"
+                />
+              </span>
+            </template>
             <template v-slot:header.reports.count="{ header }">
               <detection-status-icon
                 :status="DetectionStatus.UNRESOLVED"

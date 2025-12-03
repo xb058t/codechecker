@@ -225,7 +225,7 @@ export default {
         if (points.length > 0) {
           const firstPoint = points[0];
           const datasetIndex = firstPoint._datasetIndex;
-          this.runName = this.$router.currentRoute.query["run"];
+          this.runName = this.$route.query["run"];
           this.severity = chartInstance.data.datasets[datasetIndex].label;
           const date = this.dates.reverse()[firstPoint._index];
           const formattedDate = new Date(format(date, this.filterDateFormat));
