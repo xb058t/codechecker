@@ -173,7 +173,11 @@ import { Pane, Splitpanes } from "splitpanes";
 import { mapGetters } from "vuex";
 
 import { ccService, handleThriftError } from "@cc-api";
-import { Checker, Order, SortMode, SortType } from "@cc/report-server-types";
+import {
+  Checker,
+  MAX_QUERY_SIZE,
+  Order, SortMode, SortType
+} from "@cc/report-server-types";
 
 import { FillHeight } from "@/directives";
 import { BugPathLengthColorMixin, DetectionStatusMixin } from "@/mixins";
@@ -313,7 +317,8 @@ export default {
       initalized: false,
       checkerDocDialog: false,
       selectedChecker: null,
-      expanded: []
+      expanded: [],
+      allGroupedReports: []
     };
   },
 
@@ -383,6 +388,10 @@ export default {
           "chronological_order": report.annotations["chronological_order"]
         };
       });
+    },
+
+    isUniqueByFileLine() {
+      return this.reportFilter._uniqueMode === "fileline";
     }
   },
 
@@ -491,11 +500,14 @@ export default {
 
     refresh() {
       this.expanded = [];
+      this.allGroupedReports = [];
 
-      ccService.getClient().getRunResultCount(this.runIds,
-        this.reportFilter, this.cmpData, handleThriftError(res => {
-          this.totalItems = res.toNumber();
-        }));
+      if (!this.isUniqueByFileLine) {
+        ccService.getClient().getRunResultCount(this.runIds,
+          this.reportFilter, this.cmpData, handleThriftError(res => {
+            this.totalItems = res.toNumber();
+          }));
+      }
 
       if (this.pagination.page !== 1 && this.initalized) {
         this.pagination.page = 1;
@@ -507,26 +519,69 @@ export default {
     fetchReports() {
       this.loading = true;
 
-      const limit = this.pagination.itemsPerPage;
-      const offset = limit * (this.pagination.page - 1);
       const sortType = this.getSortMode();
       const getDetails = false;
 
-      ccService.getClient().getRunResults(this.runIds, limit, offset, sortType,
-        this.reportFilter, this.cmpData, getDetails,
-        handleThriftError(reports => {
-          this.reports = reports;
-          this.loading = false;
-          this.initalized = true;
+      if (this.isUniqueByFileLine) {
+        if (this.allGroupedReports.length === 0) {
+          ccService.getClient().getRunResults(
+            this.runIds, MAX_QUERY_SIZE, 0, sortType,
+            this.reportFilter, this.cmpData, getDetails,
+            handleThriftError(reports => {
+              const grouped = {};
+              reports.forEach(report => {
+                const key = report.checkedFile + ":" +
+                  (report.line ? report.line.toNumber() : 0);
+                if (!grouped[key]) {
+                  grouped[key] = { ...report, sameReports: [report] };
+                } else {
+                  grouped[key].sameReports.push(report);
+                }
+              });
+              this.allGroupedReports = Object.values(grouped);
+              this.totalItems = this.allGroupedReports.length;
 
-          reports.forEach(report => {
-            ccService.getSameReports(report.bugHash).then(sameReports => {
-              this.$set(
-                this.sameReports, report.bugHash,
-                [ ...new Set(sameReports.map(r => r.reviewData.status)) ]);
+              this.allGroupedReports.forEach(group => {
+                this.$set(this.sameReports, group.bugHash,
+                  [...new Set(group.sameReports.map(
+                    r => r.reviewData.status))]);
+              }); 
+
+              this._applyFileLinePage();
+              this.loading = false;
+              this.initalized = true;
+            }));
+        } else {
+          this._applyFileLinePage();
+          this.loading = false;
+        }
+      } else {
+        const limit = this.pagination.itemsPerPage;
+        const offset = limit * (this.pagination.page - 1);
+
+        ccService.getClient().getRunResults(
+          this.runIds, limit, offset, sortType,
+          this.reportFilter, this.cmpData, getDetails,
+          handleThriftError(reports => {
+            this.reports = reports;
+            reports.forEach(report => {
+              ccService.getSameReports(report.bugHash).then(sameReports => {
+                this.$set(
+                  this.sameReports, report.bugHash,
+                  [ ...new Set(sameReports.map(
+                    r => r.reviewData.status)) ]);
+              });
             });
-          });
-        }));
+            this.loading = false;
+            this.initalized = true;
+          }));
+      }
+    },
+
+    _applyFileLinePage() {
+      const limit = this.pagination.itemsPerPage;
+      const offset = limit * (this.pagination.page - 1);
+      this.reports = this.allGroupedReports.slice(offset, offset + limit);
     }
   }
 };

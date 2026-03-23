@@ -1,3 +1,4 @@
+import Vue from "vue";
 import { CompareData, DiffType } from "@cc/report-server-types";
 import {
   SET_CMP_DATA,
@@ -30,7 +31,9 @@ const mutations = {
     state.runIds = runIds;
   },
   [SET_REPORT_FILTER](state, params) {
-    Object.assign(state.reportFilter, params);
+    Object.keys(params).forEach(key => {
+      Vue.set(state.reportFilter, key, params[key]);
+    });
   },
   [SET_CMP_DATA](state, params) {
     if (!params) {

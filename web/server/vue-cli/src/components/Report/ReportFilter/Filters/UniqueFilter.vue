@@ -1,21 +1,22 @@
 <template>
-  <v-checkbox
-    class="ma-0 py-0"
-    :hide-details="true"
-    :input-value="isUnique"
-    @change="setIsUnique"
-  >
-    <template v-slot:label>
-      Unique reports
-      <tooltip-help-icon>
-        This narrows the report list to unique report types. The same bug may
-        appear several times if it is found in different runs or on different
-        control paths, i.e. through different function calls. By checking
-        <b>Unique reports</b>, a report appears only once even if it is found
-        on several paths or in different runs.
-      </tooltip-help-icon>
-    </template>
-  </v-checkbox>
+  <div class="d-flex align-center">
+    <v-select
+      :value="uniqueMode"
+      :items="options"
+      label="Unique reports"
+      dense
+      hide-details
+      class="ma-0 py-0"
+      @change="setUniqueMode"
+    />
+    <tooltip-help-icon>
+      This narrows the report list to unique report types. The same bug may
+      appear several times if it is found in different runs or on different
+      control paths, i.e. through different function calls. By checking
+      <b>Unique reports</b>, a report appears only once even if it is found
+      on several paths or in different runs.
+    </tooltip-help-icon>
+  </div>
 </template>
 
 <script>
@@ -29,35 +30,43 @@ export default {
   data() {
     return {
       id: "is-unique",
-      defaultValue: false
+      defaultValue: "off",
+      options: [
+        { text: "None", value: "off" },
+        { text: "By bug hash (old)", value: "hash" },
+        { text: "By file & line (new)", value: "fileline" }
+      ]
     };
   },
 
   computed: {
-    isUnique() {
-      return !!this.$store.state[this.namespace].reportFilter.isUnique;
+    uniqueMode() {
+      return this.$store.state[this.namespace].reportFilter._uniqueMode || "off";
     }
   },
 
   methods: {
-    setIsUnique(isUnique, updateUrl=true) {
-      this.setReportFilter({ isUnique: isUnique });
+    setUniqueMode(mode, updateUrl=true) {
+      const isUnique = mode === "hash" || mode === "fileline";
+      this.setReportFilter({ isUnique: isUnique, _uniqueMode: mode });
       if (updateUrl) {
         this.$emit("update:url");
       }
     },
 
-    encodeValue(isUnique) {
-      return isUnique ? "on" : "off";
+    encodeValue(mode) {
+      return mode;
     },
 
     decodeValue(state) {
-      return state === "on" ? true : false;
+      if (state === "on" || state === "hash") return "hash";
+      if (state === "fileline") return "fileline";
+      return "off";
     },
 
     getUrlState() {
       return {
-        [this.id]: this.encodeValue(this.isUnique)
+        [this.id]: this.encodeValue(this.uniqueMode)
       };
     },
 
@@ -65,18 +74,17 @@ export default {
       return new Promise(resolve => {
         const state = this.$route.query[this.id];
         if (state) {
-          const isUnique = this.decodeValue(state);
-          this.setIsUnique(isUnique, false);
+          const mode = this.decodeValue(state);
+          this.setUniqueMode(mode, false);
         } else {
-          this.setIsUnique(this.defaultValue, false);
+          this.setUniqueMode(this.defaultValue, false);
         }
-
         resolve();
       });
     },
 
     clear(updateUrl) {
-      this.setIsUnique(this.defaultValue, updateUrl);
+      this.setUniqueMode(this.defaultValue, updateUrl);
     }
   }
 };
