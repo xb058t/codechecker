@@ -532,10 +532,10 @@ export default {
               reports.forEach(report => {
                 const key = report.checkedFile + ":" +
                   (report.line ? report.line.toNumber() : 0);
-                if (!grouped[key]) {
-                  grouped[key] = { ...report, sameReports: [report] };
+                if (!grouped[ key ]) {
+                  grouped[ key ] = { ...report, sameReports: [ report ] };
                 } else {
-                  grouped[key].sameReports.push(report);
+                  grouped[ key ].sameReports.push(report);
                 }
               });
               this.allGroupedReports = Object.values(grouped);
@@ -543,8 +543,8 @@ export default {
 
               this.allGroupedReports.forEach(group => {
                 this.$set(this.sameReports, group.bugHash,
-                  [...new Set(group.sameReports.map(
-                    r => r.reviewData.status))]);
+                  [ ...new Set(group.sameReports.map(
+                    r => r.reviewData.status)) ]);
               }); 
 
               this._applyFileLinePage();

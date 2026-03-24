@@ -41,7 +41,8 @@ export default {
 
   computed: {
     uniqueMode() {
-      return this.$store.state[this.namespace].reportFilter._uniqueMode || "off";
+      return this.$store.state[this.namespace].reportFilter._uniqueMode
+       || "off";
     }
   },
 
