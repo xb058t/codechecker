@@ -15,17 +15,7 @@
         :checker="selectedChecker"
       />
 
-      <v-btn
-        color="primary"
-        outlined
-        small
-        @click="viewMode = viewMode === 'tree' ? 'table' : 'tree'"
-      >
-        {{ viewMode === "table" ? "Tree view" : "Table view" }}
-      </v-btn>
-
       <v-data-table
-        v-if="viewMode === 'table'"
         v-model="selected"
         v-fill-height
         :headers="tableHeaders"
@@ -174,28 +164,6 @@
           />
         </template>
       </v-data-table>
-
-      <v-treeview
-        v-else
-        :items="formattedDirectoriesForTreeViewFileCounts"
-        activatable
-        item-key="fullPath"
-        open-on-click
-        @update:active="onTreeFileClick"
-      >
-        <template #prepend="{ item, open }">
-          <v-icon v-if="item.children.length > 0">
-            {{ open ? 'mdi-folder-open' : 'mdi-folder' }}
-          </v-icon>
-          <v-icon v-else>
-            mdi-file
-          </v-icon>
-
-          <v-chip class="right ml-2">
-            {{ item.findings }}
-          </v-chip>
-        </template>
-      </v-treeview>
     </pane>
   </splitpanes>
 </template>
@@ -250,7 +218,6 @@ export default {
     const sortDesc = this.$router.currentRoute.query["sort-desc"];
 
     return {
-      viewMode: "table",
       headers: [
         {
           text: "",
@@ -325,7 +292,6 @@ export default {
         }
       ],
       reports: [],
-      allReportsFileCounts: [],
       sameReports: {},
       hasTimeStamp: true,
       hasTestCase : true,
@@ -421,71 +387,6 @@ export default {
       });
     },
 
-    formattedDirectoriesForTreeViewFileCounts() {
-      const items = [];
-      
-      Object.entries(
-        this.allReportsFileCounts || {}
-      ).forEach(([ filePath, count ]) => {
-        if (!filePath) return;
-        const pathParts = filePath.split("/").slice(0, -1);
-        let currentLevel = items;
-        let currentPath = "";
-        pathParts.forEach(part => {
-          if (part === "") return;
-
-          currentPath += "/" + part;
-          let existingPart = currentLevel.find(
-            item => item.name === part
-          );
-          if (!existingPart) {
-            existingPart = {
-              name: part,
-              fullPath: currentPath,
-              children: [],
-              findings: 0
-            };
-            currentLevel.push(existingPart);
-          }
-          currentLevel = existingPart.children;
-        });
-
-        // append filename as a child of the last directory
-        const fileName = filePath.split("/").slice(-1)[0];
-        if (fileName) {
-          const existingFile = currentLevel.find(
-            item => item.name === fileName
-          );
-          if (existingFile) {
-            existingFile.findings += count;
-          } else {
-            currentLevel.push({
-              name: fileName,
-              fullPath: filePath,
-              children: [],
-              findings: count
-            });
-          }
-        }
-      });
-
-      // count findings for directories
-      // try replacing with getCheckerCounts if performance is an issue
-      function countFindings(node) {
-        if (node.children.length === 0) {
-          return node.findings;
-        } else {
-          node.findings = node.children.reduce((sum, child) => {
-            return sum + countFindings(child);
-          }, 0);
-          return node.findings;
-        }
-      }
-      items.forEach(countFindings);
-      return items;
-    },
-
-    
   },
 
   watch: {
@@ -517,28 +418,6 @@ export default {
       setReportFilter: SET_REPORT_FILTER
     }),
 
-    onTreeFileClick(activeItems) {
-      // activeItems is an array of item-key values (fullPath)
-      if (!activeItems || activeItems.length === 0) return;
-
-      const filePath = activeItems[0];
-      if (!filePath) return;
-
-      // Find the FilePathFilter instance inside ReportFilter
-      // and call its setSelectedItems to select this file.
-      const filters = this.$refs.reportFilter.$refs.filters;
-      const filePathFilter = filters.find(
-        f => f.id === "filepath"
-      );
-      if (filePathFilter) {
-        filePathFilter.setSelectedItems([
-          { id: filePath, title: filePath, count: "N/A" }
-        ]);
-      }
-
-      this.viewMode = "table";
-    },
-
     itemExpanded(expandedItem) {
       if (expandedItem.item.sameReports) return;
 
@@ -547,16 +426,6 @@ export default {
         expandedItem.item.sameReports = sameReports;
       });
     },
-    loadFileCounts() {
-      ccService.getClient().getFileCounts(
-        this.runIds, this.reportFilter,
-        this.cmpData, 0, 0,
-        handleThriftError(fileCounts => {
-          this.allReportsFileCounts =
-            fileCounts || [];
-        }));
-    },
-
     getSortMode() {
       let type = null;
       switch (this.pagination.sortBy[0]) {
@@ -663,14 +532,6 @@ export default {
                 [ ...new Set(sameReports.map(r => r.reviewData.status)) ]);
             });
           });
-        }));
-
-      ccService.getClient().getFileCounts(
-        this.runIds, this.reportFilter,
-        this.cmpData, 0, 0,
-        handleThriftError(fileCounts => {
-          this.allReportsFileCounts =
-            fileCounts;
         }));
 
     }
