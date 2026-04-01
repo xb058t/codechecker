@@ -26,7 +26,7 @@ from typing import Any, Collection, Dict, List, Optional, Set, Tuple
 
 import sqlalchemy
 from sqlalchemy.sql.expression import or_, and_, not_, func, \
-    asc, desc, union_all, select, bindparam, literal_column, case, cast, true
+    asc, desc, union_all, select, bindparam, literal_column, cast, true
 from sqlalchemy.orm import contains_eager
 from sqlalchemy.types import ARRAY, String
 
@@ -51,6 +51,7 @@ from codechecker_api.codeCheckerDBAccess_v6.ttypes import \
 from codechecker_api_shared.ttypes import ErrorCode, RequestFailed
 
 from codechecker_common import util
+from codechecker_common.util import thrift_to_json
 from codechecker_common.logger import get_logger
 
 from codechecker_web.shared import webserver_context
@@ -71,7 +72,7 @@ from ..database.run_db_model import \
     File, FileContent, \
     Report, ReportAnnotations, ReportAnalysisInfo, ReviewStatus, \
     Run, RunHistory, RunHistoryAnalysisInfo, RunLock, \
-    SourceComponent, SourceComponentFile
+    SourceComponent, SourceComponentFile, FilterPreset
 
 from .common import exc_to_thrift_reqfail
 from .thrift_enum_helper import detection_status_enum, \
@@ -1383,48 +1384,6 @@ def get_run_id_expression(session, report_filter):
     return Run.id.label("run_id")
 
 
-def get_is_enabled_case(subquery):
-    """
-    Creating a case statement to decide the report
-    is enabled or not based on the detection status
-    """
-    detection_status_filters = subquery.c.detection_status.in_(list(
-        map(detection_status_str,
-            (DetectionStatus.OFF, DetectionStatus.UNAVAILABLE))
-    ))
-
-    return case(
-        (detection_status_filters, False),
-        else_=True
-    )
-
-
-def get_is_opened_case(subquery):
-    """
-    Creating a case statement to decide the report is opened or not
-    based on the detection status and the review status
-    """
-    detection_statuses = (
-        DetectionStatus.NEW,
-        DetectionStatus.UNRESOLVED,
-        DetectionStatus.REOPENED
-    )
-    review_statuses = (
-        API_ReviewStatus.UNREVIEWED,
-        API_ReviewStatus.CONFIRMED
-    )
-    detection_and_review_status_filters = [
-        subquery.c.detection_status.in_(list(map(
-            detection_status_str, detection_statuses))),
-        subquery.c.review_status.in_(list(map(
-            review_status_str, review_statuses)))
-    ]
-    return case(
-        (and_(*detection_and_review_status_filters), True),
-        else_=False
-    )
-
-
 def remove_reports(session: DBSession,
                    report_ids: Collection,
                    chunk_size: int = SQLITE_MAX_VARIABLE_NUMBER):
@@ -1435,6 +1394,70 @@ def remove_reports(session: DBSession,
         session.query(Report) \
             .filter(Report.id.in_(r_ids)) \
             .delete(synchronize_session=False)
+
+
+def transform_rf_db_to_thrift(rf_db):
+    """
+    Transforms a ReportFilter DB object to a ReportFilter thrift object.
+    """
+    rf_db = json.loads(rf_db)
+
+    recreated_bug_path_length = None
+    if rf_db.get("bugPathLength"):
+        recreated_bug_path_length = ttypes.BugPathLengthRange(
+            min=rf_db["bugPathLength"].get("min"),
+            max=rf_db["bugPathLength"].get("max")
+        )
+
+    recreated_date = None
+    if rf_db.get("date"):
+        recreated_date = ttypes.ReportDate(
+            detected=ttypes.DateInterval(**rf_db["date"]["detected"])
+            if rf_db["date"].get("detected") else None,
+            fixed=ttypes.DateInterval(**rf_db["date"]["fixed"])
+            if rf_db["date"].get("fixed") else None
+        )
+
+    recreated_annotations = []
+    if rf_db.get("annotations"):
+        for anno in rf_db["annotations"]:
+            recreated_annotations.append(ttypes.Pair(
+                first=anno.get("first"),
+                second=anno.get("second")
+            ))
+
+    # NOTE: Update this mapping if new fields are added
+    # to the ReportFilter struct.
+    report_filter = ttypes.ReportFilter(
+        filepath=rf_db.get("filepath"),
+        checkerMsg=rf_db.get("checkerMsg"),
+        checkerName=rf_db.get("checkerName"),
+        reportHash=rf_db.get("reportHash"),
+        severity=rf_db.get("severity"),
+        reviewStatus=rf_db.get("reviewStatus"),
+        detectionStatus=rf_db.get("detectionStatus"),
+        runHistoryTag=rf_db.get("runHistoryTag"),
+        firstDetectionDate=rf_db.get("firstDetectionDate"),
+        fixDate=rf_db.get("fixDate"),
+        isUnique=rf_db.get("isUnique"),
+        runName=rf_db.get("runName"),
+        runTag=rf_db.get("runTag"),
+        componentNames=rf_db.get("componentNames"),
+        bugPathLength=recreated_bug_path_length,
+        date=recreated_date,
+        analyzerNames=rf_db.get("analyzerNames", None),
+        openReportsDate=rf_db.get("openReportsDate"),
+        cleanupPlanNames=rf_db.get("cleanupPlanNames"),
+        fileMatchesAnyPoint=rf_db.get(
+            "fileMatchesAnyPoint"),
+        componentMatchesAnyPoint=rf_db.get(
+            "componentMatchesAnyPoint"),
+        annotations=recreated_annotations,
+        reportStatus=rf_db.get("reportStatus"),
+        fullReportPathInComponent=rf_db.get(
+            "fullReportPathInComponent")
+    )
+    return report_filter
 
 
 class ThriftRequestHandler:
@@ -1628,6 +1651,169 @@ class ThriftRequestHandler:
                                        analyzerStatistics=analyzer_stats,
                                        description=description))
             return results
+
+    # Stores the given FilterPreset with the given id
+    # If the preset exists, it overwrites the name, and all preset values
+    # if the preset does not exist yet, it creates it with
+    # if the id is -1 a new preset filter is created
+    # the filter preset name must be unique.
+    # An error must be thrown if another preset exists with the same name.
+    # The encoding of the name must be unicode. (whitespaces allowed?)
+    # Returns: the id of the modified or created preset, -1 in case of error
+    # PERMISSION: PRODUCT_ADMIN
+
+    @exc_to_thrift_reqfail
+    @timeit
+    def storeFilterPreset(self, filterpreset):
+        """
+        Store a configured FilterPreset.
+        if the received preset has an id of -1, a new preset is created,
+        otherwise the existing preset with the given id is updated.
+        args:
+            filterpreset: object with:
+                - name (str): Human readable name of preset
+                - reportFilter: ReportFilter object itself
+        """
+        self.__require_admin()
+        LOG.info("Storing filter preset in backend: %s", filterpreset.name)
+        try:
+            filter_id = filterpreset.id
+            name = filterpreset.name
+            report_filter = json.dumps(
+                thrift_to_json(filterpreset.reportFilter))
+
+            with DBSession(self._Session) as session:
+                # case for creating a new preset
+                existing_preset = session.query(FilterPreset).filter(
+                    FilterPreset.preset_name == name
+                ).one_or_none()
+
+                if filter_id == -1:
+                    if existing_preset:
+                        raise codechecker_api_shared.ttypes.RequestFailed(
+                            codechecker_api_shared.ttypes.ErrorCode.DATABASE,
+                            "A filter preset with name "
+                            f"'{name}' already exists!")
+
+                    preset_entry = FilterPreset(
+                        preset_name=name,
+                        report_filter=report_filter)
+
+                    session.add(preset_entry)
+                    session.commit()
+                    return preset_entry.id
+
+                # case for updating an existing preset
+                preset_entry = session.query(FilterPreset).filter(
+                    FilterPreset.id == filter_id
+                ).one_or_none()
+
+                if not preset_entry:
+                    raise codechecker_api_shared.ttypes.RequestFailed(
+                        codechecker_api_shared.ttypes.ErrorCode.DATABASE,
+                        f"No filter preset found with id {filter_id}!")
+
+                preset_entry.preset_name = name
+                preset_entry.report_filter = report_filter
+                session.commit()
+                return preset_entry.id
+        except Exception as ex:
+            session.rollback()
+            raise codechecker_api_shared.ttypes.RequestFailed(
+                codechecker_api_shared.ttypes.ErrorCode.DATABASE,
+                "CodeChecker could not store the filter preset: " + str(ex))
+
+    @exc_to_thrift_reqfail
+    @timeit
+    def deleteFilterPreset(self, preset_id):
+        """
+        Delete a filter preset based on preset_id.
+        Returns the ID of the deleted preset. Raises an error if the
+        preset does not exist or could not be deleted.
+        """
+        self.__require_admin()
+        LOG.info("Deleting filter preset by ID: %s", preset_id)
+        try:
+            with DBSession(self._Session) as session:
+                preset = session.query(FilterPreset). \
+                    filter(FilterPreset.id == preset_id).one_or_none()
+
+                if not preset:
+                    raise codechecker_api_shared.ttypes.RequestFailed(
+                        codechecker_api_shared.ttypes.ErrorCode.DATABASE,
+                        f"No filter preset found with id {preset_id}!")
+
+                session.query(FilterPreset) \
+                    .filter(FilterPreset.id == preset_id) \
+                    .delete()
+                session.commit()
+            return preset_id
+        except codechecker_api_shared.ttypes.RequestFailed:
+            raise
+        except Exception as exc:
+            raise codechecker_api_shared.ttypes.RequestFailed(
+                codechecker_api_shared.ttypes.ErrorCode.DATABASE,
+                f"Could not delete filter preset with id {preset_id}: \
+                {str(exc)}")
+
+    @exc_to_thrift_reqfail
+    @timeit
+    def getFilterPreset(self, preset_id: int):
+        """
+        Returns the FilterPreset identified by preset_id.
+        """
+        self.__require_view()
+        LOG.info("Returning filter preset by ID: %s", preset_id)
+
+        with DBSession(self._Session) as session:
+            preset = (
+                session.query(FilterPreset)
+                .filter(FilterPreset.id == preset_id)
+                .one_or_none()
+            )
+
+        if preset is None:
+            raise codechecker_api_shared.ttypes.RequestFailed(
+                codechecker_api_shared.ttypes.ErrorCode.DATABASE,
+                f"No filter preset found with id {preset_id}!")
+
+        report_filter = transform_rf_db_to_thrift(preset.report_filter)
+
+        return ttypes.FilterPreset(
+            preset.id, preset.preset_name, report_filter)
+
+    @exc_to_thrift_reqfail
+    @timeit
+    def listFilterPreset(self):
+        """
+        Returns all filter presets stored for the product repository
+        """
+        self.__require_view()
+        LOG.info("List back filter presets")
+
+        try:
+            with DBSession(self._Session) as session:
+                all_presets = (
+                    session.query(FilterPreset).all()
+                )
+
+            if not all_presets:
+                return []
+
+            list_of_transformed_presets = []
+            for preset in all_presets:
+                list_of_transformed_presets.append(
+                    ttypes.FilterPreset(
+                        preset.id,
+                        preset.preset_name,
+                        transform_rf_db_to_thrift(
+                            preset.report_filter)))
+
+            return list_of_transformed_presets
+        except Exception as ex:
+            raise codechecker_api_shared.ttypes.RequestFailed(
+                codechecker_api_shared.ttypes.ErrorCode.DATABASE,
+                "CodeChecker could not list a preset :", ex)
 
     @exc_to_thrift_reqfail
     @timeit
@@ -2853,7 +3039,8 @@ class ThriftRequestHandler:
                         ruleId=rule.lower(),
                         title=rules[rule].get("title", ""),
                         url=rules[rule].get("rule_url", ""),
-                        checkers=checkers
+                        checkers=checkers,
+                        level=rules[rule].get("level", "")
                     )
                 )
 
@@ -3116,9 +3303,6 @@ class ThriftRequestHandler:
 
             subquery = subquery.subquery()
 
-            is_enabled_case = get_is_enabled_case(subquery)
-            is_opened_case = get_is_opened_case(subquery)
-
             query = (
                 session.query(
                     subquery.c.checker_id,
@@ -3126,8 +3310,8 @@ class ThriftRequestHandler:
                     subquery.c.analyzer_name,
                     subquery.c.severity,
                     subquery.c.run_id,
-                    is_enabled_case.label("isEnabled"),
-                    is_opened_case.label("isOpened"),
+                    subquery.c.detection_status,
+                    subquery.c.review_status,
                     func.count(subquery.c.bug_id)
                 )
                 .group_by(
@@ -3136,8 +3320,8 @@ class ThriftRequestHandler:
                     subquery.c.analyzer_name,
                     subquery.c.severity,
                     subquery.c.run_id,
-                    is_enabled_case,
-                    is_opened_case
+                    subquery.c.detection_status,
+                    subquery.c.review_status
                 )
             )
 
@@ -3148,8 +3332,8 @@ class ThriftRequestHandler:
                 analyzer_name, \
                 severity, \
                 run_id_list, \
-                is_enabled, \
-                is_opened, \
+                detection_status, \
+                review_status, \
                 cnt \
                     in query.all():
 
@@ -3164,6 +3348,22 @@ class ThriftRequestHandler:
                         closed=0,
                         outstanding=0
                     ))
+
+                is_enabled = detection_status not in map(
+                    detection_status_str,
+                    (DetectionStatus.OFF, DetectionStatus.UNAVAILABLE))
+
+                is_opened = \
+                    detection_status in map(
+                        detection_status_str,
+                        (DetectionStatus.NEW,
+                         DetectionStatus.UNRESOLVED,
+                         DetectionStatus.REOPENED)) \
+                    and \
+                    review_status in map(
+                        review_status_str,
+                        (API_ReviewStatus.UNREVIEWED,
+                         API_ReviewStatus.CONFIRMED))
 
                 if is_enabled:
                     for r in (run_id_list.split(",")
@@ -3373,10 +3573,24 @@ class ThriftRequestHandler:
             filter_expression, join_tables = process_report_filter(
                 session, run_ids, report_filter, cmp_data)
 
+            detection_and_review_status_filters = [
+                Report.detection_status.in_(list(map(
+                    detection_status_str,
+                    (DetectionStatus.NEW,
+                     DetectionStatus.UNRESOLVED,
+                     DetectionStatus.REOPENED)))),
+                Report.review_status.in_(list(map(
+                    review_status_str,
+                    (API_ReviewStatus.UNREVIEWED,
+                     API_ReviewStatus.CONFIRMED))))
+            ]
+
             extended_table = session.query(
                 Report.review_status,
                 Report.detection_status,
-                Report.bug_id
+                Report.bug_id,
+                and_(*detection_and_review_status_filters)
+                .label("isOutstanding")
             )
 
             if report_filter.annotations is not None:
@@ -3391,19 +3605,16 @@ class ThriftRequestHandler:
 
             extended_table = extended_table.subquery()
 
-            is_outstanding_case = get_is_opened_case(extended_table)
-            case_label = "isOutstanding"
-
             if report_filter.isUnique:
                 q = session.query(
-                    is_outstanding_case.label(case_label),
+                    extended_table.c.isOutstanding,
                     func.count(extended_table.c.bug_id.distinct())) \
-                    .group_by(is_outstanding_case)
+                    .group_by(extended_table.c.isOutstanding)
             else:
                 q = session.query(
-                    is_outstanding_case.label(case_label),
+                    extended_table.c.isOutstanding,
                     func.count(extended_table.c.bug_id)) \
-                    .group_by(is_outstanding_case)
+                    .group_by(extended_table.c.isOutstanding)
 
             results = {
                 report_status_enum(
