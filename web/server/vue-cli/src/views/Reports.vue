@@ -2,7 +2,6 @@
   <splitpanes class="default-theme">
     <pane size="20" :style="{ 'min-width': '300px' }">
       <report-filter
-        ref="reportFilter"
         v-fill-height
         :namespace="namespace"
         :report-count="totalItems"
