@@ -1509,15 +1509,9 @@ class ThriftRequestHandler:
             args = dict(self.__permission_args)
             args['config_db_session'] = session
 
-            # Anonymous access is only allowed if authentication is
-            # turned off
-            if self._manager.is_enabled and not self._auth_session:
-                raise codechecker_api_shared.ttypes.RequestFailed(
-                    codechecker_api_shared.ttypes.ErrorCode.UNAUTHORIZED,
-                    "You are not authorized to execute this action.")
-
             if not any(permissions.require_permission(
-                    perm, args, self._auth_session)
+                    perm, args, self._auth_session,
+                    self._manager.is_enabled)
                     for perm in required):
                 raise codechecker_api_shared.ttypes.RequestFailed(
                     codechecker_api_shared.ttypes.ErrorCode.UNAUTHORIZED,
@@ -3023,6 +3017,8 @@ class ThriftRequestHandler:
         guidelines: List[ttypes.Guideline]
     ):
         """ Return the list of rules to each guideline that given. """
+        self.__require_view()
+        
         guideline_rules = defaultdict(list)
         for guideline in guidelines:
             rules = self._context.guideline.rules_of_guideline(
