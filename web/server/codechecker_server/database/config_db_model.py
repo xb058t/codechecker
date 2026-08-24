@@ -214,6 +214,7 @@ class OAuthToken(Base):
     __tablename__ = 'oauth_tokens'
 
     id = Column(Integer, autoincrement=True, primary_key=True)
+    provider = Column(String, nullable=False)
     access_token = Column(String, nullable=False)
     expires_at = Column(DateTime)
     refresh_token = Column(String, nullable=False)
@@ -223,8 +224,9 @@ class OAuthToken(Base):
                                         ondelete='CASCADE'),
                              nullable=False)
 
-    def __init__(self, access_token, expires_at, refresh_token,
+    def __init__(self, provider, access_token, expires_at, refresh_token,
                  auth_session_id):
+        self.provider = provider
         self.access_token = access_token
         self.expires_at = expires_at
         self.refresh_token = refresh_token
