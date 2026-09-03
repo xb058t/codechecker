@@ -1110,23 +1110,79 @@ class SessionManager:
             return None
 
         for sess in self.__sessions:
-            if sess.is_alive and sess.token == token:
-                # If the session is alive but the should be re-validated.
-                if sess.is_refresh_time_expire:
-                    sess.revalidate()
-                return sess
+            if sess.token == token:
+                if sess.is_alive:
+                    # If the session is alive but the should be re-validated.
+                    if sess.is_refresh_time_expire:
+                        sess.revalidate()
+                    return sess
+
+                if self.__try_extend_oauth_session(token):
+                    sess.last_access = datetime.now()
+                    return sess
+                break
 
         # Try to get a local session from the database.
         local_session = self.__get_local_session_from_db(token)
-        if local_session and local_session.is_alive:
-            self.__sessions.append(local_session)
-            if local_session.is_refresh_time_expire:
-                local_session.revalidate()
-            return local_session
+        if local_session:
+            if local_session.is_alive:
+                self.__sessions.append(local_session)
+                if local_session.is_refresh_time_expire:
+                    local_session.revalidate()
+                return local_session
+
+            if self.__try_extend_oauth_session(token):
+                local_session.last_access = datetime.now()
+                self.__sessions.append(local_session)
+                return local_session
 
         self.invalidate(token)
 
         return None
+
+    def __try_extend_oauth_session(self, token) -> bool:
+        """
+        Extends an OAuth-backed session whose lifetime has lapsed, as
+        long as the provider's access token is still within its own
+        expiry. Once the access token has expired, the session is left
+        to be invalidated and the user has to log in again.
+        """
+        if not self.__is_method_enabled('oauth'):
+            return False
+
+        transaction = None
+        try:
+            transaction = self.__config_db_sessionmaker()
+            row = transaction.query(OAuthToken, SessionRecord) \
+                .join(SessionRecord,
+                      OAuthToken.auth_session_id == SessionRecord.id) \
+                .filter(SessionRecord.token == token) \
+                .limit(1).one_or_none()
+
+            if not row:
+                return False
+
+            oauth_token, session_record = row
+            now = datetime.now()
+
+            if not oauth_token.expires_at or now >= oauth_token.expires_at:
+                LOG.info("Access token of session %s... expired at %s, "
+                         "the user has to log in again.",
+                         token[:8], oauth_token.expires_at)
+                return False
+
+            session_record.last_access = now
+            transaction.commit()
+            LOG.info("Extended session %s..., the access token is valid "
+                     "until %s.", token[:8], oauth_token.expires_at)
+            return True
+        except Exception as e:
+            LOG.warning("OAuth session extension failed for %s...: %s",
+                        token[:8], str(e))
+            return False
+        finally:
+            if transaction:
+                transaction.close()
 
     def invalidate_local_session(self, token):
         """
@@ -1173,5 +1229,6 @@ class SessionManager:
                 self.invalidate_local_session(s.token)
 
         for s in self.__sessions[:]:
-            if not s.is_alive:
+            if not s.is_alive and not self.__try_extend_oauth_session(
+                    s.token):
                 self.invalidate(s.token)

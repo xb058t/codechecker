@@ -29,7 +29,7 @@ from .run_db_model import \
     File, FileContent, \
     Report, ReportAnalysisInfo, ReportPathDataFile, RunHistoryAnalysisInfo, \
     RunLock
-from .config_db_model import Session as SessionRecord
+from .config_db_model import OAuthToken, Session as SessionRecord
 
 LOG = get_logger('server')
 RUN_LOCK_TIMEOUT_IN_DATABASE = 30 * 60  # 30 minutes.
@@ -438,15 +438,20 @@ def delete_expired_auth_sessions(config_db_sessionmaker: sessionmaker,
             cutoff_date = (datetime.now() - timedelta(
                 seconds=session_lifetime))
 
+            # OAuth-backed sessions are kept alive while their access
+            # token is still valid (see SessionManager), so only delete
+            # them once the token has expired too.
+            has_live_oauth_token = \
+                session.query(OAuthToken.auth_session_id) \
+                .filter(OAuthToken.auth_session_id == SessionRecord.id) \
+                .filter(OAuthToken.expires_at > datetime.now())
+
+            query = session.query(SessionRecord) \
+                .filter(SessionRecord.last_access < cutoff_date) \
+                .filter(~has_live_oauth_token.exists())
             if user_name:
-                session.query(SessionRecord) \
-                       .filter(SessionRecord.user_name == user_name) \
-                       .filter(SessionRecord.last_access < cutoff_date) \
-                       .delete(synchronize_session=False)
-            else:
-                session.query(SessionRecord) \
-                       .filter(SessionRecord.last_access < cutoff_date) \
-                       .delete(synchronize_session=False)
+                query = query.filter(SessionRecord.user_name == user_name)
+            query.delete(synchronize_session=False)
 
             session.commit()
             LOG.debug("Finished cleanup of expired auth sessions.")
