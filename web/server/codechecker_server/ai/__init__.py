@@ -11,7 +11,7 @@ AI-assisted explanation of analysis reports.
 
 from .config import AIConfig
 from .explain import PathEvent, ReportContext, explain_report
-from .providers import AIProviderError
+from .client import AIProviderError
 
 __all__ = [
     'AIConfig',

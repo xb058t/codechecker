@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from codechecker_common.logger import get_logger
 
 from .prompt import SYSTEM_PROMPT, VERDICTS, build_user_prompt
-from .providers import AIProviderError, create_provider, parse_json_response
+from .client import AIProviderError, EricAIClient, parse_json_response
 
 LOG = get_logger('server')
 
@@ -85,18 +85,25 @@ def _coerce_verdict(value):
     return verdict
 
 
-def explain_report(context, ai_config, model_id=None):
-    """ Ask the configured model to explain ``context``. """
+def explain_report(context, ai_config, model_id=None, user=None,
+                   models=None):
+    """
+    Ask the configured model to explain ``context``. ``user`` is the logged
+    in user the request is made for, if EricAI is told about it. ``models``
+    are the ones to choose from; the configured ones by default.
+    """
     if not ai_config.is_available:
         raise AIProviderError(
             "AI report explanation is not enabled on this server.")
 
-    model_config = ai_config.get_model(model_id)
+    model_config = ai_config.pick_model(
+        model_id, ai_config.models if models is None else models)
     if not model_config:
         raise AIProviderError(
             f"The AI model '{model_id}' is not available on this server.")
 
-    provider = create_provider(model_config, ai_config.timeout)
+    client = EricAIClient(ai_config.ericai, model_config, ai_config.timeout)
+    client.on_behalf_of = user
 
     user_prompt = build_user_prompt(context,
                                     ai_config.max_source_lines,
@@ -105,13 +112,13 @@ def explain_report(context, ai_config, model_id=None):
     LOG.debug("Requesting an explanation of %s from '%s'.",
               context.checker_name, model_config.id)
 
-    raw = provider.complete(SYSTEM_PROMPT, user_prompt)
-    usage = provider.last_usage or (None, None)
+    raw = client.complete(SYSTEM_PROMPT, user_prompt)
+    usage = client.last_usage or (None, None)
     answer = parse_json_response(raw)
 
     if not isinstance(answer, dict):
         raise AIProviderError(
-            "The AI provider did not return a JSON object.")
+            "EricAI did not return a JSON object.")
 
     background = answer.get('background')
     if not background:

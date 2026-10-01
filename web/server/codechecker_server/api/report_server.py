@@ -63,6 +63,7 @@ from codechecker_server.profiler import timeit
 from .. import permissions
 from ..ai import (
     AIProviderError, PathEvent, ReportContext, explain_report)
+from ..ai.catalog import MODEL_CATALOG
 from ..database import db_cleanup
 from ..database.config_db_model import Product
 from ..database.database import conv, DBSession, escape_like
@@ -4966,11 +4967,22 @@ class ThriftRequestHandler:
         if not ai_config.is_available:
             return []
 
+        models = MODEL_CATALOG.available_models(ai_config)
+        if not models:
+            raise codechecker_api_shared.ttypes.RequestFailed(
+                codechecker_api_shared.ttypes.ErrorCode.GENERAL,
+                "None of the AI models is loaded on EricAI right now. "
+                "Try again later.")
+
+        default = ai_config.pick_model(None, models)
+
         return [
             AIModel(id=model.id,
                     displayName=model.display_name,
-                    isDefault=model.id == ai_config.default_model)
-            for model in ai_config.models]
+                    isDefault=model is default,
+                    speed=model.speed,
+                    reliability=model.reliability)
+            for model in models]
 
     @exc_to_thrift_reqfail
     @timeit
@@ -4985,12 +4997,26 @@ class ThriftRequestHandler:
                 codechecker_api_shared.ttypes.ErrorCode.GENERAL,
                 "AI report explanation is not enabled on this server.")
 
+        # Asking an unloaded model would load it, possibly evicting another
+        # team's, while this request times out.
+        models = MODEL_CATALOG.available_models(ai_config)
+        if not ai_config.pick_model(model, models):
+            raise codechecker_api_shared.ttypes.RequestFailed(
+                codechecker_api_shared.ttypes.ErrorCode.GENERAL,
+                f"The AI model '{model}' is not loaded on EricAI right now. "
+                "Choose another model." if model and models else
+                "None of the AI models is loaded on EricAI right now. "
+                "Try again later.")
+
         # Closed before the call: it can take twenty seconds.
         with DBSession(self._Session) as session:
             context = self.__build_report_context(session, reportId)
 
         try:
-            explanation = explain_report(context, ai_config, model)
+            explanation = explain_report(
+                context, ai_config, model,
+                self._auth_session.user if self._auth_session else None,
+                models)
         except AIProviderError as ex:
             LOG.warning("Could not explain report %s: %s", reportId, ex)
             raise codechecker_api_shared.ttypes.RequestFailed(
