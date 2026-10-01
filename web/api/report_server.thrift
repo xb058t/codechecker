@@ -605,6 +605,10 @@ struct AIModel {
   1: string id,           // Identifier to pass to getReportExplanation().
   2: string displayName,  // Human readable name for the GUI.
   3: bool   isDefault,    // Whether this is the server's default model.
+  4: optional string speed,       // "slow", "medium" or "fast"; unset if not
+                                  // rated by the server's administrator.
+  5: optional string reliability, // "low", "medium" or "high"; unset if not
+                                  // rated by the server's administrator.
 }
 typedef list<AIModel> AIModels
 
