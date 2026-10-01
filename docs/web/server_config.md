@@ -24,7 +24,9 @@ Table of Contents
     * [Interval time](#interval-time)
     * [Probes](#probes)
 * [AI report explanation](#ai-report-explanation)
+  * [EricAI](#ericai)
   * [Models](#models)
+  * [Output](#output)
   * [Limits](#limits-1)
 * [Authentication](#authentication)
 * [Secrets](#secrets)
@@ -170,35 +172,71 @@ By default the server will use the value from your host configured by the
 ## AI report explanation
 The `ai` section turns on the **Explain** button of the *Report details* view,
 which asks a large language model to describe the background of a report and
-to argue whether it is a true or a false positive.
+to argue whether it is a true or a false positive. Every request goes through
+[EricAI](https://eteamspace.internal.ericsson.com/display/BFSTOS/GenAI+Enablers),
+which serves its models through a LiteLLM proxy.
 
 The feature is off by default. It is only offered to clients when `enabled` is
-`true` **and** at least one model has an API key, so an incomplete
-configuration silently leaves the button inactive rather than failing at
-request time.
+`true`, the `ericai` section is complete **and** at least one model is listed,
+so an incomplete configuration silently leaves the button inactive rather than
+failing at request time.
 
 ```json
 {
   "ai": {
     "enabled": true,
-    "default_model": "deepseek-chat",
+    "default_model": "gpt-oss-120b",
     "timeout": 60,
     "max_source_lines": 400,
     "max_path_events": 50,
+    "ericai": {
+      "api_url": "https://ray.sero.gic.ericsson.se/backendsso/v1",
+      "ca_bundle": "/etc/ssl/certs/ca-certificates.crt",
+      "token_command": "",
+      "token_command_dir": "",
+      "token_url": "https://login.microsoftonline.com/92e84ceb-fbfd-47ab-be52-080c6b87953f/oauth2/v2.0/token",
+      "client_id": "",
+      "client_secret": "",
+      "scope": "api://b46aa582-485a-4a7d-b30e-552dbd790b16/.default",
+      "user_header": "X-Authenticated-User",
+      "user_email_domain": ""
+    },
+    "discover_models": false,
     "models": [
       {
-        "id": "deepseek-chat",
-        "display_name": "DeepSeek V3",
-        "provider": "deepseek",
-        "model": "deepseek-chat",
-        "api_key": "<your API key>"
+        "id": "gpt-oss-120b",
+        "display_name": "GPT-OSS 120B",
+        "model": "openai/gpt-oss-120b",
+        "speed": "fast",
+        "reliability": "high"
       },
       {
-        "id": "gemini-flash",
-        "display_name": "Gemini 3.6 Flash",
-        "provider": "gemini",
-        "model": "gemini-3.6-flash",
-        "api_key": "<your API key>"
+        "id": "deepseek-v4.1-flash",
+        "display_name": "DeepSeek V4.1 Flash",
+        "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+        "speed": "fast",
+        "reliability": "high"
+      },
+      {
+        "id": "gemma-4-31b",
+        "display_name": "Gemma 4 31B",
+        "model": "Google/Gemma-4-31B-it",
+        "speed": "fast",
+        "reliability": "medium"
+      },
+      {
+        "id": "qwen3.8-27b",
+        "display_name": "Qwen3.8 27B",
+        "model": "Qwen/Qwen3.8-27B-FP8-1M",
+        "speed": "medium",
+        "reliability": "high"
+      },
+      {
+        "id": "glm-5.2",
+        "display_name": "GLM 5.2",
+        "model": "zai-org/GLM-5.2-FP8",
+        "speed": "medium",
+        "reliability": "high"
       }
     ]
   }
@@ -206,36 +244,106 @@ request time.
 ```
 
 Note that the analysed source code, the checker message and the analyser's bug
-path are sent to the configured provider. Only enable this for products whose
-source may leave your network.
+path are sent to EricAI. Only enable this for products whose source may be
+processed by it.
+
+### EricAI
+EricAI does not take a static API key: every request carries a short-lived
+OAuth2 access token issued by Microsoft Entra ID. The server shares one token
+between requests until it is about to expire, and fetches a new one when
+EricAI rejects it. It gets the token in one of two ways:
+
+* **As a signed in user**, with `token_command`: a command that prints an
+  access token. With the `ericai` client installed and signed in once as the
+  user the server runs as (`ericai api models.list` starts the login), use
+  ```
+  /path/to/venv/bin/ericai --ericsson-access-token --fail-on-interactive-login
+  ```
+  The `ericai` client renews its tokens by itself, but its login has to be
+  renewed at least every 12 weeks. Every request counts as that user's,
+  which suits evaluation and development; a shared server should use a
+  service principal.
+* **As a service principal**, through the OAuth2 *client credentials* flow,
+  when `token_command` is empty. This needs an application registration
+  ("Enterprise App SSO") for the server, which is then authorised for EricAI;
+  see *EricAI SSO architecture* on the GenAI Enablers pages.
+
+The command is run without a shell. It must not wait for an interactive
+login, which nobody would complete, and must print the token as the last line
+of its standard output.
+
+| Key | Meaning |
+| --- | --- |
+| `api_url` | The EricAI LiteLLM endpoint. `/chat/completions` is appended unless it is already there. |
+| `ca_bundle` | Certificates to verify EricAI with; `~` is expanded. Needed where the Ericsson internal CA is not otherwise trusted. |
+| `token_command` | A command that prints an access token of a signed in user. When set, the client credentials below are not used. |
+| `token_command_dir` | Working directory of `token_command`; `~` is expanded. The `ericai` client finds its login (`.ericai_authrecord`) only in the directory it was signed in from. |
+| `token_url` | Token endpoint of the Ericsson Entra ID tenant. |
+| `client_id` | Application (client) ID of the server's app registration. |
+| `client_secret` | Its client secret. Keep it in `server_secrets.json`. |
+| `scope` | The EricAI scope, ending in `/.default` for this flow. |
+| `user_header` | Optional. A header naming the logged in user who asked for the explanation, as an e-mail address. EricAI expects `X-Authenticated-User`. Omitted when no user is logged in. |
+| `user_email_domain` | Optional. Appended to user names that are not e-mail addresses (`jdoe` becomes `jdoe@example.com`). Without it such users are not named. |
+
+Where `server_config.json` is version controlled or generated by
+configuration management, use `$SECRET:name$` for the client secret to keep it
+in `server_secrets.json` (see [Secrets](#secrets)).
+
+Both indirections fail the **whole** configuration file rather than just the
+`ai` section when they cannot be resolved: `$ENV:VARIABLE$` when the variable
+is unset, `$SECRET:name$` when `server_secrets.json` is missing. The server
+then refuses to start.
+
+EricAI's certificate is issued by the Ericsson internal certificate
+authority, which the system certificate store usually trusts but the bundle
+shipped with Python's `requests` does not. `ca_bundle` points at the
+certificates to verify EricAI and the token endpoint with; on Debian and
+Ubuntu the system store is `/etc/ssl/certs/ca-certificates.crt`, on RHEL
+`/etc/pki/tls/certs/ca-bundle.crt`. A path that does not exist is ignored with
+a warning. Without `ca_bundle`, the `REQUESTS_CA_BUNDLE` environment variable
+is honoured.
 
 ### Models
-Each entry of `models` describes one model the GUI may offer:
+Each entry of `models` describes one EricAI model the GUI may offer. The
+example configuration lists `openai/gpt-oss-120b` as the default and four
+alternatives. EricAI keeps `openai/gpt-oss-120b` and `Qwen/Qwen3.8-27B-FP8-1M`
+loaded at all times; the others are loaded on demand.
+
+Most EricAI models are elastic: they are only loaded onto GPUs on demand,
+which takes several minutes and may evict another team's model. The server
+therefore reads EricAI's model list (at most once a minute) and offers only
+the configured models that are loaded right now. A request for a model that
+is not loaded is refused rather than sent. If the list cannot be read, the
+configured models are offered unchecked.
+
+With `"discover_models": true`, every other loaded chat model is offered as
+well, under its EricAI name, so newly loaded models appear without a
+configuration change. Aliases (`tag:...`), deprecated models and test
+instances are left out, but the list may still contain special purpose
+models. *Default value*: `false`
 
 | Key | Meaning |
 | --- | --- |
 | `id` | Identifier used by the API and shown in the model selector. |
 | `display_name` | Human readable name. Defaults to `id`. |
-| `provider` | `deepseek` or `gemini`. |
-| `model` | The provider side model name. Defaults to `id`. |
-| `api_key` | Credential for the provider. |
-| `api_url` | Optional. Points the provider at a proxy or gateway. |
+| `model` | The model name EricAI routes. Defaults to `id`. |
 | `temperature` | Optional sampling temperature. *Default value*: `0.2` |
+| `speed` | Optional: `slow`, `medium` or `fast`. How quickly the model typically answers; shown in the GUI's model list. |
+| `reliability` | Optional: `low`, `medium` or `high`. How trustworthy its explanations have proven; shown in the GUI's model list. |
 
-A key may be written straight into `api_key`. Where `server_config.json` is
-version controlled or generated by configuration management, use
-`$SECRET:name$` instead to keep the key in `server_secrets.json` (see
-[Secrets](#secrets)).
-
-Both indirections fail the **whole** configuration file rather than just the
-`ai` section when they cannot be resolved: `$ENV:VARIABLE$` when the variable
-is unset, `$SECRET:name$` when `server_secrets.json` is missing. The server
-then refuses to start. A literal key has nothing to resolve and cannot fail
-this way.
+`speed` and `reliability` are the administrator's own assessment, e.g. from
+running `scripts/debug_tools/try_ai_explain.py --all` on reports whose true
+answer is known. As a guide, `fast` answers in under 10 seconds and `slow`
+takes more than 20. Models found with `discover_models` are not rated.
 
 `default_model` selects the model used when a client does not ask for a
-specific one. If it names a model that is not usable, the first usable model is
-used instead.
+specific one. If it names a model that is not listed or not loaded, the first
+offered model is used instead.
+
+### Output
+Models answer in a restricted subset of HTML (paragraphs, lists, emphasis and
+code). The GUI passes each answer through DOMPurify and keeps only those
+tags, with no attributes, before showing it.
 
 ### Limits
 `timeout` bounds how long the server waits for a completion, in seconds.

@@ -7,8 +7,9 @@
 #
 # -------------------------------------------------------------------------
 """
-Explain a report with the models configured in a server_config.json, without
-running a server. Useful for comparing models and iterating on the prompt.
+Explain a report through EricAI with the models configured in a
+server_config.json, without running a server. Useful for comparing models and
+iterating on the prompt.
 
 Examples:
 
@@ -16,7 +17,7 @@ Examples:
     ./try_ai_explain.py --all
 
     # One model, against a real finding.
-    ./try_ai_explain.py --model gemini-flash \\
+    ./try_ai_explain.py --model llama \\
         --file src/parser.c --line 214 \\
         --checker core.NullDereference \\
         --message "Dereference of null pointer"
@@ -86,8 +87,8 @@ def _ai():
         if path not in sys.path:
             sys.path.insert(0, path)
 
-    from codechecker_server.ai import config, explain, prompt, providers
-    return config, explain, prompt, providers
+    from codechecker_server.ai import client, config, explain, prompt
+    return config, explain, prompt, client
 
 
 def load_config(path, timeout):
@@ -112,12 +113,14 @@ def load_config(path, timeout):
         with open(secrets_path, 'r', encoding='utf-8') as handle:
             secrets = json.load(handle)
 
-    for model in raw.get('models', []):
-        key = model.get('api_key', '')
-        if key.startswith('$ENV:'):
-            model['api_key'] = os.environ.get(key[5:-1], '')
-        elif key.startswith('$SECRET:'):
-            model['api_key'] = secrets.get(key[8:-1], '')
+    ericai = raw.get('ericai') or {}
+    for key, value in ericai.items():
+        if not isinstance(value, str):
+            continue
+        if value.startswith('$ENV:'):
+            ericai[key] = os.environ.get(value[5:-1], '')
+        elif value.startswith('$SECRET:'):
+            ericai[key] = secrets.get(value[8:-1], '')
 
     # The tool is explicitly asking for an explanation, so the server's own
     # on/off switch does not apply.
@@ -197,7 +200,7 @@ def main():
     parser.add_argument('--list', action='store_true',
                         help="List the configured models and exit.")
     parser.add_argument('--dry-run', action='store_true',
-                        help="Print the prompt instead of calling a provider.")
+                        help="Print the prompt instead of calling EricAI.")
 
     parser.add_argument('--file', help="Source file the report refers to.")
     parser.add_argument('--line', type=int, default=1)
@@ -234,9 +237,12 @@ def main():
             print(f"  {model.id:<16} {model.display_name}{default}")
         return 0
 
-    if not cfg.models:
+    if not cfg.ericai:
         raise SystemExit(
-            f"No usable model in {args.config}; every entry lacks a key.")
+            f"The 'ericai' section of {args.config} is incomplete.")
+
+    if not cfg.models:
+        raise SystemExit(f"No model is configured in {args.config}.")
 
     wanted = cfg.models if args.all else [
         m for m in cfg.models
@@ -246,14 +252,14 @@ def main():
         known = ', '.join(m.id for m in cfg.models)
         raise SystemExit(f"No such model. Configured: {known}")
 
-    _, explain, _, providers = _ai()
+    _, explain, _, client = _ai()
 
     failures = 0
     for model in wanted:
         started = time.time()
         try:
             explanation = explain.explain_report(context, cfg, model.id)
-        except providers.AIProviderError as ex:
+        except client.AIProviderError as ex:
             print(f"\n{model.id}: FAILED - {ex}", file=sys.stderr)
             failures += 1
             continue
