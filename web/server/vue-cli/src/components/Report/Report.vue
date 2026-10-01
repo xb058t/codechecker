@@ -278,6 +278,7 @@
           v-fill-height
           :report-id="report?.reportId"
           @close="showAiPanel = false"
+          @go-to-line="goToReportLine"
         />
       </v-col>
       <v-col
@@ -1076,6 +1077,21 @@ function highlightRange(_from, _to) {
 
       _prev = _current;
     });
+}
+
+// A line the AI explanation refers to. The model only saw the report's own
+// file, so show that one if a bug path step in another file is open.
+async function goToReportLine(line) {
+  if (!report.value) return;
+
+  if (!sourceFile.value?.fileId.equals(report.value.fileId)) {
+    await setSourceFileData(report.value.fileId);
+    await drawBugPath();
+  }
+
+  if (line < 1 || line > editor.value.state.doc.lines) return;
+
+  jumpTo(line, 0);
 }
 
 function jumpTo(line, column) {
