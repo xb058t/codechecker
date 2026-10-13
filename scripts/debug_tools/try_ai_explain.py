@@ -7,9 +7,9 @@
 #
 # -------------------------------------------------------------------------
 """
-Explain a report through EricAI with the models configured in a
-server_config.json, without running a server. Useful for comparing models and
-iterating on the prompt.
+Explain a report with the models configured in a server_config.json, through
+EricAI or directly at their providers, without running a server. Useful for
+comparing models and iterating on the prompt.
 
 Examples:
 
@@ -17,7 +17,7 @@ Examples:
     ./try_ai_explain.py --all
 
     # One model, against a real finding.
-    ./try_ai_explain.py --model llama \\
+    ./try_ai_explain.py --model claude-opus \\
         --file src/parser.c --line 214 \\
         --checker core.NullDereference \\
         --message "Dereference of null pointer"
@@ -113,14 +113,17 @@ def load_config(path, timeout):
         with open(secrets_path, 'r', encoding='utf-8') as handle:
             secrets = json.load(handle)
 
-    ericai = raw.get('ericai') or {}
-    for key, value in ericai.items():
-        if not isinstance(value, str):
-            continue
-        if value.startswith('$ENV:'):
-            ericai[key] = os.environ.get(value[5:-1], '')
-        elif value.startswith('$SECRET:'):
-            ericai[key] = secrets.get(value[8:-1], '')
+    def resolve(node):
+        items = node.items() if isinstance(node, dict) else enumerate(node)
+        for key, value in items:
+            if isinstance(value, (dict, list)):
+                resolve(value)
+            elif isinstance(value, str) and value.startswith('$ENV:'):
+                node[key] = os.environ.get(value[5:-1], '')
+            elif isinstance(value, str) and value.startswith('$SECRET:'):
+                node[key] = secrets.get(value[8:-1], '')
+
+    resolve(raw)
 
     # The tool is explicitly asking for an explanation, so the server's own
     # on/off switch does not apply.
@@ -172,6 +175,8 @@ def render(model_id, explanation, elapsed):
     if explanation.input_tokens is not None:
         print(f"Usage      : {explanation.input_tokens} in + "
               f"{explanation.output_tokens} out")
+    if explanation.cost is not None:
+        print(f"Cost       : ${explanation.cost:.4f}")
 
     for title, body in (("Background", explanation.background),
                         ("Case for a true positive",
@@ -200,7 +205,7 @@ def main():
     parser.add_argument('--list', action='store_true',
                         help="List the configured models and exit.")
     parser.add_argument('--dry-run', action='store_true',
-                        help="Print the prompt instead of calling EricAI.")
+                        help="Print the prompt instead of calling a model.")
 
     parser.add_argument('--file', help="Source file the report refers to.")
     parser.add_argument('--line', type=int, default=1)
@@ -234,15 +239,14 @@ def main():
     if args.list:
         for model in cfg.models:
             default = " (default)" if model.id == cfg.default_model else ""
-            print(f"  {model.id:<16} {model.display_name}{default}")
+            print(f"  {model.id:<16} {model.provider:<10} "
+                  f"{model.display_name}{default}")
         return 0
 
-    if not cfg.ericai:
-        raise SystemExit(
-            f"The 'ericai' section of {args.config} is incomplete.")
-
     if not cfg.models:
-        raise SystemExit(f"No model is configured in {args.config}.")
+        raise SystemExit(
+            f"No usable model is configured in {args.config}: give the "
+            "direct models an API key, or complete the 'ericai' section.")
 
     wanted = cfg.models if args.all else [
         m for m in cfg.models

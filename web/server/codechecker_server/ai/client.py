@@ -6,14 +6,13 @@
 #
 # -------------------------------------------------------------------------
 """
-The EricAI client. EricAI serves its models through a LiteLLM proxy, which
-speaks the OpenAI chat completion dialect and takes short-lived OAuth2 access
-tokens: of the server's service principal, or of a signed in user.
+Asks a model through LiteLLM, at EricAI or directly at its provider.
 """
 
 import base64
 import json
 import os
+import re
 import shlex
 import subprocess
 import threading
@@ -23,9 +22,12 @@ import requests
 
 from codechecker_common.logger import get_logger
 
+from .prompt import answer_schema
+
 LOG = get_logger('server')
 
 # Busy or briefly down, rather than refusing the request.
+# Not left to LiteLLM, which retries every error without waiting.
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
 MAX_ATTEMPTS = 3
@@ -172,8 +174,29 @@ class OAuth2TokenCache:
 OAUTH2_TOKENS = OAuth2TokenCache()
 
 
-class EricAIClient:
-    """ Asks one EricAI model for a completion. """
+def _litellm():
+    """ Imported late: optional and slow to import. """
+    # Otherwise it downloads its price list on import.
+    os.environ.setdefault('LITELLM_LOCAL_MODEL_COST_MAP', 'True')
+
+    try:
+        import litellm
+    except ImportError as ex:
+        raise AIProviderError(
+            "The 'litellm' package is required for AI report explanation. "
+            "Install web/requirements.txt.") from ex
+
+    litellm.suppress_debug_info = True
+    return litellm
+
+
+def _completion(**kwargs):
+    """ Replaced by the tests. """
+    return _litellm().completion(**kwargs)
+
+
+class AIClient:
+    """ Asks one model, through EricAI or directly, for a completion. """
 
     def __init__(self, ericai_config, model_config, timeout):
         self._ericai = ericai_config
@@ -183,78 +206,194 @@ class EricAIClient:
         # (input, output) tokens of the last completion, or None.
         self.last_usage = None
 
-        # HTTP status of the last completion request, or None.
-        self.last_status = None
+        # In USD, if LiteLLM knows the price.
+        self.last_cost = None
 
         # The logged in user a request is made for, or None.
         self.on_behalf_of = None
 
     @property
-    def api_url(self):
-        """ The chat completion endpoint under the configured root. """
-        url = self._ericai.api_url.rstrip('/')
-
-        if url.endswith('/chat/completions'):
-            return url
-
-        return f"{url}/chat/completions"
+    def _where(self):
+        return self._model.provider if self._model.is_direct else 'EricAI'
 
     def complete(self, system_prompt, user_prompt):
         """ Send the prompts, return the raw answer as a JSON string. """
+        if self._model.is_direct:
+            return self._complete(system_prompt, user_prompt)
+
         try:
             return self._complete(system_prompt, user_prompt)
-        except AIProviderError:
+        except _TokenRejected:
             # A token can be revoked before it expires; fetch a new one
             # and try once more.
-            if self.last_status != 401:
-                raise
+            OAUTH2_TOKENS.invalidate(self._ericai)
 
-        OAUTH2_TOKENS.invalidate(self._ericai)
-        return self._complete(system_prompt, user_prompt)
+        try:
+            return self._complete(system_prompt, user_prompt)
+        except _TokenRejected as ex:
+            raise AIProviderError(
+                f"EricAI rejected the access token. {ex}".strip()) from ex
 
     def _complete(self, system_prompt, user_prompt):
-        payload = {
-            'model': self._model.model,
+        litellm = _litellm()
+
+        kwargs = {
+            'model': self._model.litellm_model,
             'messages': [
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_prompt}
             ],
-            'temperature': self._model.temperature,
-            'stream': False,
-            'response_format': {'type': 'json_object'}
+            'response_format': self._response_format(litellm),
+            'timeout': self._timeout,
+            # Retried in _call.
+            'max_retries': 0,
+            'drop_params': True
         }
 
-        data = self._post(self.api_url, self._headers(), payload)
+        for key in ('temperature', 'max_tokens', 'reasoning_effort'):
+            value = getattr(self._model, key)
+            if value is not None:
+                kwargs[key] = value
 
-        usage = data.get('usage') or {}
-        if usage:
-            self.last_usage = (usage.get('prompt_tokens'),
-                               usage.get('completion_tokens'))
+        if self._model.is_direct:
+            kwargs['api_key'] = self._model.api_key
+            if self._model.api_base:
+                kwargs['api_base'] = self._model.api_base
 
-        try:
-            choice = data['choices'][0]
-            content = choice['message']['content']
-        except (KeyError, IndexError, TypeError) as ex:
-            raise AIProviderError(
-                "The EricAI response did not contain a completion.") from ex
+            return self._send(litellm, kwargs)
 
-        if choice.get('finish_reason') == 'length':
-            LOG.warning("The EricAI answer was truncated at the token limit.")
-
-        return content
-
-    def _headers(self):
         token = OAUTH2_TOKENS.get(self._ericai, self._timeout)
-        headers = {
-            'Authorization': f"Bearer {token}",
-            'Content-Type': 'application/json'
-        }
+        kwargs['api_base'] = self._ericai.api_base
+        kwargs['api_key'] = token
 
         user = self._forwarded_user()
         if user:
-            headers[self._ericai.user_header] = user
+            kwargs['extra_headers'] = {self._ericai.user_header: user}
 
-        return headers
+        # LiteLLM only takes a CA bundle globally, which would also apply
+        # to the direct providers.
+        import httpx
+        import openai
+
+        # Like requests, which fetches the tokens.
+        verify = self._ericai.ca_bundle or \
+            os.environ.get('REQUESTS_CA_BUNDLE') or True
+
+        with httpx.Client(verify=verify, timeout=self._timeout) as http:
+            kwargs['client'] = openai.OpenAI(base_url=self._ericai.api_base,
+                                             api_key=token,
+                                             http_client=http,
+                                             max_retries=0,
+                                             timeout=self._timeout)
+            return self._send(litellm, kwargs)
+
+    def _response_format(self, litellm):
+        """ The answer schema where supported, else plain JSON. """
+        if self._model.is_direct:
+            try:
+                strict = litellm.supports_response_schema(
+                    model=self._model.litellm_model)
+            except Exception:
+                strict = False
+
+            if strict:
+                return {'type': 'json_schema',
+                        'json_schema': {'name': 'report_explanation',
+                                        'schema': answer_schema(),
+                                        'strict': True}}
+
+        return {'type': 'json_object'}
+
+    @staticmethod
+    def _is_retryable(ex):
+        """ Whether a failed request is worth sending again. """
+        return getattr(ex, 'status_code', None) in RETRYABLE_STATUS
+
+    @staticmethod
+    def _retry_delay(ex, attempt):
+        """ Retry-After when the provider sends one, else the schedule. """
+        response = getattr(ex, 'response', None)
+        headers = getattr(response, 'headers', None) or {}
+        retry_after = headers.get('Retry-After')
+        if retry_after:
+            try:
+                return max(0.0, min(float(retry_after), 30.0))
+            except ValueError:
+                pass  # an HTTP date rather than seconds
+
+        return BACKOFF_SCHEDULE[min(attempt, len(BACKOFF_SCHEDULE) - 1)]
+
+    def _call(self, kwargs):
+        """ litellm.completion, retried on transient failures. """
+        for attempt in range(MAX_ATTEMPTS - 1):
+            try:
+                return _completion(**kwargs)
+            except Exception as ex:
+                if not self._is_retryable(ex):
+                    raise
+
+                delay = self._retry_delay(ex, attempt)
+                LOG.info("%s answered with HTTP %s; retrying in %.1fs "
+                         "(attempt %d of %d).", self._where, ex.status_code,
+                         delay, attempt + 1, MAX_ATTEMPTS)
+                time.sleep(delay)
+
+        return _completion(**kwargs)
+
+    def _send(self, litellm, kwargs):
+        """ The answer text of the completion. """
+        try:
+            response = self._call(kwargs)
+        except litellm.exceptions.AuthenticationError as ex:
+            if not self._model.is_direct:
+                raise _TokenRejected(_reason(ex)) from ex
+            raise AIProviderError(
+                f"{self._where} rejected the API key of model "
+                f"'{self._model.id}'.") from ex
+        except litellm.exceptions.Timeout as ex:
+            raise AIProviderError(
+                f"{self._where} did not answer within {self._timeout} "
+                "seconds.") from ex
+        except litellm.exceptions.RateLimitError as ex:
+            raise AIProviderError(
+                f"{self._where} refused the request: rate limit or quota "
+                f"reached. {_reason(ex)}".strip()) from ex
+        except litellm.exceptions.APIConnectionError as ex:
+            raise AIProviderError(
+                f"Could not reach {self._where}: {_reason(ex)}") from ex
+        except Exception as ex:
+            status = getattr(ex, 'status_code', None)
+            LOG.debug("LiteLLM request failed.", exc_info=True)
+            raise AIProviderError(
+                f"{self._where} answered with "
+                f"{f'HTTP {status}' if status else 'an error'}. "
+                f"{_reason(ex)}".strip()) from ex
+
+        usage = getattr(response, 'usage', None)
+        if usage:
+            self.last_usage = (getattr(usage, 'prompt_tokens', None),
+                               getattr(usage, 'completion_tokens', None))
+
+        if self._model.is_direct:
+            try:
+                self.last_cost = litellm.completion_cost(
+                    completion_response=response)
+            except Exception:
+                self.last_cost = None
+
+        try:
+            choice = response.choices[0]
+            content = choice.message.content
+        except (AttributeError, IndexError, TypeError) as ex:
+            raise AIProviderError(
+                f"The {self._where} response did not contain a "
+                "completion.") from ex
+
+        if getattr(choice, 'finish_reason', None) == 'length':
+            LOG.warning("The answer of '%s' was truncated at the token "
+                        "limit.", self._model.id)
+
+        return content
 
     def _forwarded_user(self):
         """ The user to name in ``user_header``, as an e-mail address. """
@@ -272,76 +411,22 @@ class EricAIClient:
 
         return user
 
-    @staticmethod
-    def _is_retryable(status_code):
-        """ Whether a failed response is worth sending again. """
-        return status_code in RETRYABLE_STATUS
 
-    @staticmethod
-    def _retry_delay(response, attempt):
-        """ Retry-After when EricAI sends one, else the schedule. """
-        retry_after = response.headers.get('Retry-After')
-        if retry_after:
-            try:
-                return max(0.0, min(float(retry_after), 30.0))
-            except ValueError:
-                pass  # an HTTP date rather than seconds
+class _TokenRejected(Exception):
+    """ EricAI answered 401. """
 
-        return BACKOFF_SCHEDULE[min(attempt, len(BACKOFF_SCHEDULE) - 1)]
 
-    def _post(self, url, headers, payload):
-        """ POST and decode, retrying transient failures. """
-        last_error = None
-
-        for attempt in range(MAX_ATTEMPTS):
-            try:
-                response = requests.post(url,
-                                         headers=headers,
-                                         json=payload,
-                                         timeout=self._timeout,
-                                         verify=self._ericai.verify)
-            except requests.Timeout as ex:
-                raise AIProviderError(
-                    f"EricAI did not answer within {self._timeout} "
-                    "seconds.") from ex
-            except requests.RequestException as ex:
-                raise AIProviderError(
-                    f"Could not reach EricAI: {ex}") from ex
-
-            self.last_status = response.status_code
-
-            if response.status_code == 200:
-                try:
-                    return response.json()
-                except ValueError as ex:
-                    raise AIProviderError(
-                        "EricAI returned a malformed response.") from ex
-
-            # The body usually carries the real reason.
-            detail = response.text[:500] if response.text else ''
-            last_error = (
-                f"EricAI answered with HTTP {response.status_code}. "
-                f"{detail}")
-
-            if not self._is_retryable(response.status_code):
-                break
-
-            if attempt < MAX_ATTEMPTS - 1:
-                delay = self._retry_delay(response, attempt)
-                LOG.info(
-                    "EricAI answered with HTTP %s; retrying in %.1fs "
-                    "(attempt %d of %d).", response.status_code, delay,
-                    attempt + 1, MAX_ATTEMPTS)
-                time.sleep(delay)
-
-        raise AIProviderError(last_error)
+def _reason(ex):
+    """ The provider's message without LiteLLM's prefixes. """
+    message = str(getattr(ex, 'message', None) or ex)
+    message = re.sub(r'^.*?\w+Exception - ', '', message, flags=re.DOTALL)
+    message = re.sub(r'^((litellm\.)?\w+Error: )+', '', message)
+    return message.strip()[:500]
 
 
 def fetch_models(ericai, timeout):
     """ EricAI's model list: the entries of its OpenAI style /models. """
-    root = ericai.api_url.rstrip('/')
-    if root.endswith('/chat/completions'):
-        root = root[:-len('/chat/completions')]
+    root = ericai.api_base
 
     token = OAUTH2_TOKENS.get(ericai, timeout)
     try:
@@ -373,7 +458,7 @@ def fetch_models(ericai, timeout):
 def parse_json_response(text):
     """ Decode the answer, unwrapping a Markdown fence if one is there. """
     if not text:
-        raise AIProviderError("EricAI returned an empty answer.")
+        raise AIProviderError("The model returned an empty answer.")
 
     cleaned = text.strip()
 
@@ -389,4 +474,4 @@ def parse_json_response(text):
     except ValueError as ex:
         LOG.debug("Unparsable AI answer: %s", cleaned[:1000])
         raise AIProviderError(
-            "EricAI did not return valid JSON.") from ex
+            "The model did not return valid JSON.") from ex

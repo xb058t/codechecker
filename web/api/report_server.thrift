@@ -609,6 +609,8 @@ struct AIModel {
                                   // rated by the server's administrator.
   5: optional string reliability, // "low", "medium" or "high"; unset if not
                                   // rated by the server's administrator.
+  6: optional string provider,    // "ericai", or the provider asked directly,
+                                  // e.g. "anthropic".
 }
 typedef list<AIModel> AIModels
 

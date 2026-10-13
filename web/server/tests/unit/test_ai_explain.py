@@ -17,10 +17,15 @@ import sys
 import tempfile
 import time
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 
+import certifi
+import httpx
+import litellm
+
 from codechecker_server.ai import catalog, client, explain
-from codechecker_server.ai.config import AIConfig
+from codechecker_server.ai.config import AIConfig, AIModelConfig
 from codechecker_server.ai.explain import (
     PathEvent, ReportContext, explain_report)
 from codechecker_server.ai.prompt import build_source_window, format_bug_path
@@ -106,16 +111,39 @@ class ShippedConfigTestCase(unittest.TestCase):
         with open(path, encoding="utf-8") as handle:
             self.raw = json.load(handle)["ai"]
 
+    def configured(self):
+        """ The template, with the credentials it leaves empty filled in. """
+        raw = json.loads(json.dumps(self.raw))
+        raw["enabled"] = True
+        raw["ericai"].update(client_id="cid", client_secret="secret")
+        for model in raw["models"]:
+            if "api_key" in model:
+                model["api_key"] = "key"
+        return AIConfig(raw)
+
     def test_feature_is_off_by_default(self):
         self.assertFalse(AIConfig(self.raw).is_available)
 
+    def test_empty_credentials_keep_the_feature_off(self):
+        self.assertFalse(AIConfig(dict(self.raw, enabled=True)).is_available)
+
+    def test_every_shipped_model_is_offered_once_configured(self):
+        self.assertEqual(len(self.configured().models),
+                         len(self.raw["models"]))
+
+    def test_shipped_config_has_ericai_and_direct_models(self):
+        providers = {m.provider for m in self.configured().models}
+
+        self.assertIn("ericai", providers)
+        self.assertTrue(providers - {"ericai"})
+
     def test_every_shipped_model_is_rated(self):
-        for model in AIConfig(dict(self.raw, enabled=True)).models:
+        for model in self.configured().models:
             self.assertIsNotNone(model.speed, model.id)
             self.assertIsNotNone(model.reliability, model.id)
 
     def test_default_model_is_one_of_the_models(self):
-        cfg = AIConfig(dict(self.raw, enabled=True))
+        cfg = self.configured()
 
         self.assertTrue(cfg.models)
         self.assertEqual(self.raw["default_model"], cfg.default_model)
@@ -140,50 +168,58 @@ class ResponseParsingTestCase(unittest.TestCase):
                 client.parse_json_response(bad)
 
 
+def provider_error(status, retry_after=None):
+    """ A LiteLLM error as a provider's HTTP answer raises it. """
+    headers = {'Retry-After': retry_after} if retry_after else {}
+    error = litellm.exceptions.APIError(status, "failed", "openai", "m")
+    error.response = httpx.Response(
+        status, headers=headers, request=httpx.Request("POST", "http://x"))
+    return error
+
+
 class RetryDecisionTestCase(unittest.TestCase):
-    """ A busy EricAI is worth another try; a refused request is not. """
+    """ A busy provider is worth another try; a refused request is not. """
 
     def setUp(self):
-        self.is_retryable = client.EricAIClient._is_retryable
+        self.is_retryable = client.AIClient._is_retryable
 
     def test_transient_failures_are_retried(self):
         for status in (429, 500, 502, 503, 504):
-            self.assertTrue(self.is_retryable(status), status)
+            self.assertTrue(self.is_retryable(provider_error(status)), status)
 
     def test_client_errors_are_not_retried(self):
         for status in (400, 401, 403, 404, 422):
-            self.assertFalse(self.is_retryable(status), status)
+            self.assertFalse(self.is_retryable(provider_error(status)),
+                             status)
+
+    def test_errors_without_status_are_not_retried(self):
+        self.assertFalse(self.is_retryable(ValueError("bug")))
 
 
 class RetryDelayTestCase(unittest.TestCase):
     """ Retry-After wins over the built-in backoff when it is usable. """
 
-    class FakeResponse:
-        def __init__(self, retry_after=None):
-            self.headers = {}
-            if retry_after is not None:
-                self.headers['Retry-After'] = retry_after
-
     def setUp(self):
-        self.retry_delay = client.EricAIClient._retry_delay
+        self.retry_delay = client.AIClient._retry_delay
 
     def test_backoff_schedule_when_no_header(self):
-        delay = self.retry_delay(self.FakeResponse(), 0)
+        delay = self.retry_delay(provider_error(503), 0)
         self.assertEqual(delay, client.BACKOFF_SCHEDULE[0])
 
     def test_retry_after_is_honoured(self):
-        self.assertEqual(self.retry_delay(self.FakeResponse('7'), 0), 7.0)
+        self.assertEqual(self.retry_delay(provider_error(429, '7'), 0), 7.0)
 
     def test_retry_after_is_capped(self):
-        self.assertEqual(self.retry_delay(self.FakeResponse('9000'), 0), 30.0)
+        self.assertEqual(self.retry_delay(provider_error(429, '9000'), 0),
+                         30.0)
 
     def test_http_date_retry_after_falls_back(self):
         delay = self.retry_delay(
-            self.FakeResponse('Wed, 21 Oct 2026 07:28:00 GMT'), 1)
+            provider_error(429, 'Wed, 21 Oct 2026 07:28:00 GMT'), 1)
         self.assertEqual(delay, client.BACKOFF_SCHEDULE[1])
 
     def test_attempt_beyond_schedule_is_clamped(self):
-        delay = self.retry_delay(self.FakeResponse(), 99)
+        delay = self.retry_delay(provider_error(503), 99)
         self.assertEqual(delay, client.BACKOFF_SCHEDULE[-1])
 
 
@@ -236,6 +272,89 @@ class ConfigTestCase(unittest.TestCase):
     def test_model_name_defaults_to_id(self):
         self.assertEqual(ai_config(models=[{"id": "m"}]).models[0].model, "m")
 
+    def test_models_go_through_ericai_by_default(self):
+        model = ai_config().models[0]
+
+        self.assertEqual(model.provider, "ericai")
+        self.assertFalse(model.is_direct)
+        self.assertEqual(model.temperature, 0.2)
+
+    def test_missing_litellm_disables_the_feature(self):
+        with mock.patch.object(config_module().importlib.util, "find_spec",
+                               return_value=None):
+            self.assertFalse(ai_config().is_available)
+
+
+def config_module():
+    return sys.modules[AIConfig.__module__]
+
+
+class DirectProviderConfigTestCase(unittest.TestCase):
+    """ Models asked at their own provider, with an API key. """
+
+    @staticmethod
+    def config(models, **raw):
+        return AIConfig(dict({"enabled": True, "models": models}, **raw))
+
+    def test_direct_model_needs_no_ericai(self):
+        cfg = self.config([{"id": "c", "provider": "anthropic",
+                            "model": "claude-opus-5-5", "api_key": "k"}])
+
+        self.assertTrue(cfg.is_available)
+        self.assertIsNone(cfg.ericai)
+        self.assertTrue(cfg.models[0].is_direct)
+
+    def test_direct_model_without_key_is_skipped(self):
+        cfg = self.config([{"id": "c", "provider": "anthropic",
+                            "api_key": ""}])
+
+        self.assertEqual(cfg.models, [])
+        self.assertFalse(cfg.is_available)
+
+    def test_api_base_replaces_the_key(self):
+        cfg = self.config([{"id": "local", "provider": "ollama",
+                            "model": "llama3",
+                            "api_base": "http://localhost:11434"}])
+
+        self.assertEqual([m.id for m in cfg.models], ["local"])
+
+    def test_ericai_model_without_ericai_is_skipped(self):
+        cfg = self.config([{"id": "e"},
+                           {"id": "d", "provider": "deepseek",
+                            "api_key": "k"}])
+
+        self.assertEqual([m.id for m in cfg.models], ["d"])
+
+    def test_ericai_and_direct_models_together(self):
+        cfg = self.config([{"id": "e", "model": "openai/gpt-oss-120b"},
+                           {"id": "d", "provider": "gemini",
+                            "api_key": "k"}], ericai=ERICAI)
+
+        self.assertEqual([m.provider for m in cfg.models],
+                         ["ericai", "gemini"])
+
+    def test_litellm_model_names(self):
+        def name(**entry):
+            return AIModelConfig(dict({"id": "x"}, **entry)).litellm_model
+
+        self.assertEqual(name(model="openai/gpt-oss-120b"),
+                         "litellm_proxy/openai/gpt-oss-120b")
+        self.assertEqual(name(provider="anthropic", model="claude-opus-5-5",
+                              api_key="k"),
+                         "anthropic/claude-opus-5-5")
+        self.assertEqual(name(provider="Gemini", model="gemini/flash",
+                              api_key="k"),
+                         "gemini/flash")
+
+    def test_direct_models_send_no_temperature_unless_set(self):
+        models = self.config([
+            {"id": "a", "provider": "anthropic", "api_key": "k"},
+            {"id": "b", "provider": "openai", "api_key": "k",
+             "temperature": 0}]).models
+
+        self.assertIsNone(models[0].temperature)
+        self.assertEqual(models[1].temperature, 0)
+
 
 class FakeHTTPResponse:
     def __init__(self, status_code, body):
@@ -248,80 +367,105 @@ class FakeHTTPResponse:
         return self._body
 
 
-class EricAIClientTestCase(unittest.TestCase):
+def completion_response(content='{"a": 1}', finish_reason="stop"):
+    """ What litellm.completion returns, trimmed to what is read. """
+    return SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content=content),
+                                 finish_reason=finish_reason)],
+        usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5))
+
+
+class LiteLLMTestCase(unittest.TestCase):
+    """ Replaces litellm.completion, recording each call's arguments. """
+
+    def setUp(self):
+        client.OAUTH2_TOKENS = client.OAuth2TokenCache()
+        self.completions = []
+        self.failures = []
+
+        def fake_completion(**kwargs):
+            self.completions.append(kwargs)
+            if self.failures:
+                raise self.failures.pop(0)
+            return completion_response()
+
+        patcher = mock.patch.object(client, "_completion", fake_completion)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+
+class EricAIClientTestCase(LiteLLMTestCase):
     """
     Short-lived OAuth2 access tokens of the client credentials flow: shared
     until near expiry and renewed when EricAI rejects them.
     """
 
-    COMPLETION = {"choices": [{"message": {"content": '{"a": 1}'}}],
-                  "usage": {"prompt_tokens": 10, "completion_tokens": 5}}
-
     def setUp(self):
-        client.OAUTH2_TOKENS = client.OAuth2TokenCache()
+        super().setUp()
         self.token_requests = 0
-        self.completions = []
-        self.completion_statuses = []
+
+        patcher = mock.patch.object(client.requests, "post", self.fake_post)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def fake_post(self, url, **kwargs):
-        if url == ERICAI["token_url"]:
-            self.token_requests += 1
-            self.assertEqual(kwargs["data"]["grant_type"],
-                             "client_credentials")
-            return FakeHTTPResponse(200, {
-                "access_token": f"token-{self.token_requests}",
-                "expires_in": 3600})
-
-        self.completions.append((url, kwargs))
-        status = (self.completion_statuses.pop(0)
-                  if self.completion_statuses else 200)
-        return FakeHTTPResponse(status, self.COMPLETION if status == 200
-                                else {"error": "unauthorized"})
+        self.assertEqual(url, ERICAI["token_url"])
+        self.token_requests += 1
+        self.assertEqual(kwargs["data"]["grant_type"], "client_credentials")
+        return FakeHTTPResponse(200, {
+            "access_token": f"token-{self.token_requests}",
+            "expires_in": 3600})
 
     @staticmethod
     def client(**ericai):
         cfg = ai_config(**ericai)
-        return client.EricAIClient(cfg.ericai, cfg.models[0], 60)
+        return client.AIClient(cfg.ericai, cfg.models[0], 60)
 
-    def test_chat_completions_is_appended_to_the_root(self):
-        self.assertEqual(self.client(api_url="https://e.example/").api_url,
-                         "https://e.example/chat/completions")
-        self.assertEqual(self.client(api_url="https://e.example/v1").api_url,
-                         "https://e.example/v1/chat/completions")
-
-    def test_full_endpoint_is_kept(self):
-        url = "https://e.example/v1/chat/completions"
-        self.assertEqual(self.client(api_url=url).api_url, url)
+    def test_api_base_is_the_root_of_chat_completions(self):
+        for url in ("https://e.example/v1", "https://e.example/v1/",
+                    "https://e.example/v1/chat/completions"):
+            self.assertEqual(ai_config(api_url=url).ericai.api_base,
+                             "https://e.example/v1")
 
     def test_request_names_the_model_and_usage_is_recorded(self):
         ericai = self.client()
-        with mock.patch.object(client.requests, "post", self.fake_post):
-            self.assertEqual(ericai.complete("s", "u"), '{"a": 1}')
+        self.assertEqual(ericai.complete("s", "u"), '{"a": 1}')
 
-        url, kwargs = self.completions[0]
-        self.assertEqual(url, "https://ericai.example/v1/chat/completions")
-        self.assertEqual(kwargs["json"]["model"], "llama")
+        sent = self.completions[0]
+        self.assertEqual(sent["model"], "litellm_proxy/llama")
+        self.assertEqual(sent["api_base"], "https://ericai.example/v1")
+        self.assertEqual(sent["response_format"], {"type": "json_object"})
+        self.assertEqual(sent["temperature"], 0.2)
+        self.assertEqual(sent["messages"][0],
+                         {"role": "system", "content": "s"})
         self.assertEqual(ericai.last_usage, (10, 5))
 
     def test_token_is_sent_and_shared(self):
-        with mock.patch.object(client.requests, "post", self.fake_post):
-            self.client().complete("s", "u")
-            self.client().complete("s", "u")
+        self.client().complete("s", "u")
+        self.client().complete("s", "u")
 
         self.assertEqual(self.token_requests, 1)
-        for _, kwargs in self.completions:
-            self.assertEqual(kwargs["headers"]["Authorization"],
-                             "Bearer token-1")
+        self.assertEqual([c["api_key"] for c in self.completions],
+                         ["token-1", "token-1"])
 
     def test_rejected_token_is_renewed_once(self):
-        self.completion_statuses = [401]
+        self.failures = [litellm.exceptions.AuthenticationError(
+            "expired", "litellm_proxy", "llama")]
 
-        with mock.patch.object(client.requests, "post", self.fake_post):
-            self.assertEqual(self.client().complete("s", "u"), '{"a": 1}')
+        self.assertEqual(self.client().complete("s", "u"), '{"a": 1}')
 
         self.assertEqual(self.token_requests, 2)
-        self.assertEqual(self.completions[-1][1]["headers"]["Authorization"],
-                         "Bearer token-2")
+        self.assertEqual(self.completions[-1]["api_key"], "token-2")
+
+    def test_token_rejected_twice_is_reported(self):
+        self.failures = [litellm.exceptions.AuthenticationError(
+            "expired", "litellm_proxy", "llama") for _ in range(2)]
+
+        with self.assertRaises(client.AIProviderError) as ctx:
+            self.client().complete("s", "u")
+
+        self.assertIn("rejected the access token", str(ctx.exception))
+        self.assertEqual(len(self.completions), 2)
 
     def test_token_endpoint_failure_is_reported_without_secret(self):
         def failing_post(url, **_):
@@ -337,14 +481,40 @@ class EricAIClientTestCase(unittest.TestCase):
         self.assertNotIn(ERICAI["client_secret"], str(ctx.exception))
 
     def test_ca_bundle_is_used_for_every_request(self):
-        with tempfile.NamedTemporaryFile(suffix=".crt") as bundle:
-            ericai = self.client(ca_bundle=bundle.name)
-            with mock.patch.object(client.requests, "post",
-                                   wraps=self.fake_post) as post:
-                ericai.complete("s", "u")
+        # httpx loads the bundle, so it must hold real certificates.
+        bundle = certifi.where()
+        verified = []
 
-        self.assertEqual([c.kwargs["verify"] for c in post.call_args_list],
-                         [bundle.name, bundle.name])
+        class RecordingClient(httpx.Client):
+            def __init__(self, *args, verify=True, **kwargs):
+                verified.append(verify)
+                super().__init__(*args, verify=verify, **kwargs)
+
+        ericai = self.client(ca_bundle=bundle)
+        with mock.patch.object(client.requests, "post",
+                               wraps=self.fake_post) as post, \
+                mock.patch.object(httpx, "Client", RecordingClient):
+            ericai.complete("s", "u")
+
+        self.assertEqual(post.call_args.kwargs["verify"], bundle)
+        self.assertEqual(verified, [bundle])
+        self.assertEqual(str(self.completions[0]["client"].base_url),
+                         "https://ericai.example/v1/")
+
+    def test_requests_ca_bundle_applies_to_completions_too(self):
+        verified = []
+
+        class RecordingClient(httpx.Client):
+            def __init__(self, *args, verify=True, **kwargs):
+                verified.append(verify)
+                super().__init__(*args, verify=verify, **kwargs)
+
+        with mock.patch.dict(os.environ,
+                             {"REQUESTS_CA_BUNDLE": certifi.where()}), \
+                mock.patch.object(httpx, "Client", RecordingClient):
+            self.client().complete("s", "u")
+
+        self.assertEqual(verified, [certifi.where()])
 
     def test_missing_ca_bundle_falls_back_to_the_default(self):
         cfg = ai_config(ca_bundle="/no/such/bundle.crt")
@@ -355,23 +525,155 @@ class EricAIClientTestCase(unittest.TestCase):
         ericai = self.client(user_header="X-Authenticated-User",
                              user_email_domain="example.com")
         ericai.on_behalf_of = "jdoe"
+        ericai.complete("s", "u")
 
-        with mock.patch.object(client.requests, "post", self.fake_post):
-            ericai.complete("s", "u")
-
-        self.assertEqual(
-            self.completions[0][1]["headers"]["X-Authenticated-User"],
-            "jdoe@example.com")
+        self.assertEqual(self.completions[0]["extra_headers"],
+                         {"X-Authenticated-User": "jdoe@example.com"})
 
     def test_user_without_email_is_not_forwarded(self):
         ericai = self.client(user_header="X-Authenticated-User")
         ericai.on_behalf_of = "jdoe"
+        ericai.complete("s", "u")
 
-        with mock.patch.object(client.requests, "post", self.fake_post):
-            ericai.complete("s", "u")
+        self.assertNotIn("extra_headers", self.completions[0])
 
-        self.assertNotIn("X-Authenticated-User",
-                         self.completions[0][1]["headers"])
+
+class DirectClientTestCase(LiteLLMTestCase):
+    """ A provider asked directly: its API key, and no EricAI specifics. """
+
+    MODEL = {"id": "claude", "provider": "anthropic",
+             "model": "claude-opus-5-5", "api_key": "sk-test-key"}
+
+    def client(self, **entry):
+        cfg = AIConfig({"enabled": True, "ericai": dict(
+                            ERICAI, user_header="X-Authenticated-User"),
+                        "models": [dict(self.MODEL, **entry)]})
+        ai = client.AIClient(cfg.ericai, cfg.models[0], 30)
+        ai.on_behalf_of = "jdoe@example.com"
+        return ai
+
+    def complete(self, **entry):
+        with mock.patch.object(client.requests, "post") as post:
+            answer = self.client(**entry).complete("s", "u")
+
+        post.assert_not_called()  # no EricAI token
+        return answer
+
+    def test_request_goes_to_the_provider_with_its_key(self):
+        self.assertEqual(self.complete(), '{"a": 1}')
+
+        sent = self.completions[0]
+        self.assertEqual(sent["model"], "anthropic/claude-opus-5-5")
+        self.assertEqual(sent["api_key"], "sk-test-key")
+        for key in ("api_base", "client", "extra_headers", "temperature"):
+            self.assertNotIn(key, sent)
+
+    def test_optional_parameters_are_passed_on(self):
+        self.complete(api_base="https://proxy.example", max_tokens=2000,
+                      reasoning_effort="low", temperature=0)
+
+        sent = self.completions[0]
+        self.assertEqual(sent["api_base"], "https://proxy.example")
+        self.assertEqual(sent["max_tokens"], 2000)
+        self.assertEqual(sent["reasoning_effort"], "low")
+        self.assertEqual(sent["temperature"], 0)
+
+    def test_schema_is_enforced_where_supported(self):
+        with mock.patch.object(litellm, "supports_response_schema",
+                               return_value=True):
+            self.complete()
+
+        response_format = self.completions[0]["response_format"]
+        self.assertEqual(response_format["type"], "json_schema")
+        self.assertEqual(
+            set(response_format["json_schema"]["schema"]["required"]),
+            {"background", "verdict", "confidence", "true_positive_case",
+             "false_positive_case"})
+
+    def test_json_mode_where_no_schema_is_supported(self):
+        with mock.patch.object(litellm, "supports_response_schema",
+                               return_value=False):
+            self.complete()
+
+        self.assertEqual(self.completions[0]["response_format"],
+                         {"type": "json_object"})
+
+    def test_rejected_key_is_reported_without_the_key(self):
+        self.failures = [litellm.exceptions.AuthenticationError(
+            "invalid x-api-key", "anthropic", "claude-opus-5-5")]
+
+        with self.assertRaises(client.AIProviderError) as ctx:
+            self.complete()
+
+        self.assertIn("anthropic rejected the API key", str(ctx.exception))
+        self.assertNotIn("sk-test-key", str(ctx.exception))
+        self.assertEqual(len(self.completions), 1)
+
+    def test_timeout_is_reported(self):
+        self.failures = [litellm.exceptions.Timeout(
+            "slow", "claude-opus-5-5", "anthropic")]
+
+        with self.assertRaises(client.AIProviderError) as ctx:
+            self.complete()
+
+        self.assertIn("within 30 seconds", str(ctx.exception))
+
+    def test_other_errors_carry_the_status_and_reason(self):
+        self.failures = [litellm.exceptions.BadRequestError(
+            "model not found", "claude-opus-5-5", "anthropic")]
+
+        with self.assertRaises(client.AIProviderError) as ctx:
+            self.complete()
+
+        self.assertEqual(str(ctx.exception),
+                         "anthropic answered with HTTP 400. model not found")
+
+    def test_transient_failures_are_retried_with_backoff(self):
+        self.failures = [provider_error(503), provider_error(429)]
+
+        with mock.patch.object(client.time, "sleep") as sleep:
+            self.assertEqual(self.complete(), '{"a": 1}')
+
+        self.assertEqual(len(self.completions), 3)
+        self.assertEqual([c.args[0] for c in sleep.call_args_list],
+                         list(client.BACKOFF_SCHEDULE))
+        self.assertEqual(self.completions[0]["max_retries"], 0)
+
+    def test_retries_give_up_after_the_last_attempt(self):
+        self.failures = [provider_error(503) for _ in range(5)]
+
+        with mock.patch.object(client.time, "sleep"), \
+                self.assertRaises(client.AIProviderError) as ctx:
+            self.complete()
+
+        self.assertEqual(len(self.completions), client.MAX_ATTEMPTS)
+        self.assertIn("HTTP 503", str(ctx.exception))
+
+    def test_refused_request_is_not_retried(self):
+        self.failures = [provider_error(400)]
+
+        with mock.patch.object(client.time, "sleep") as sleep, \
+                self.assertRaises(client.AIProviderError):
+            self.complete()
+
+        self.assertEqual(len(self.completions), 1)
+        sleep.assert_not_called()
+
+    def test_cost_is_recorded_when_known(self):
+        ai = self.client()
+        with mock.patch.object(litellm, "completion_cost",
+                               return_value=0.0123):
+            ai.complete("s", "u")
+
+        self.assertEqual(ai.last_cost, 0.0123)
+
+    def test_unknown_cost_is_unset(self):
+        ai = self.client()
+        with mock.patch.object(litellm, "completion_cost",
+                               side_effect=Exception("not mapped")):
+            ai.complete("s", "u")
+
+        self.assertIsNone(ai.last_cost)
 
 
 def fake_jwt(expires_in):
@@ -449,19 +751,19 @@ class TokenCommandTestCase(unittest.TestCase):
                                        "print('user-token')")}})
         sent = []
 
-        def fake_post(url, **kwargs):
-            sent.append(kwargs["headers"]["Authorization"])
-            return FakeHTTPResponse(200, EricAIClientTestCase.COMPLETION)
+        def fake_completion(**kwargs):
+            sent.append(kwargs["api_key"])
+            return completion_response()
 
-        with mock.patch.object(client.requests, "post", fake_post), \
+        with mock.patch.object(client, "_completion", fake_completion), \
                 mock.patch.object(client.subprocess, "run",
                                   wraps=client.subprocess.run) as run:
             for _ in range(2):
-                client.EricAIClient(cfg.ericai, cfg.models[0], 10) \
+                client.AIClient(cfg.ericai, cfg.models[0], 10) \
                     .complete("s", "u")
 
         self.assertEqual(run.call_count, 1)
-        self.assertEqual(sent, ["Bearer user-token"] * 2)
+        self.assertEqual(sent, ["user-token"] * 2)
 
 
 def model_entry(model_id, loaded=True, lifecycle="Recommended",
@@ -555,6 +857,22 @@ class ModelCatalogTestCase(unittest.TestCase):
 
         self.assertEqual(self.ids(self.config()), ["gpt", "qwen-big", "gone"])
 
+    def test_direct_models_are_always_offered(self):
+        cfg = self.config()
+        cfg.models.insert(1, AIModelConfig({"id": "claude",
+                                            "provider": "anthropic",
+                                            "api_key": "k"}))
+
+        self.assertEqual(self.ids(cfg), ["gpt", "claude"])
+
+    def test_direct_only_config_never_asks_ericai(self):
+        cfg = AIConfig({"enabled": True, "ericai": ERICAI,
+                        "models": [{"id": "claude", "provider": "anthropic",
+                                    "api_key": "k"}]})
+
+        self.assertEqual(self.ids(cfg), ["claude"])
+        self.assertEqual(self.fetches, 0)
+
     def test_model_without_status_counts_as_loaded(self):
         statuses = catalog.parse_model_list([{"id": "plain/litellm"}])
 
@@ -598,12 +916,13 @@ class FetchModelsTestCase(unittest.TestCase):
 
 
 class FakeClient:
-    """ Stands in for EricAI. """
+    """ Stands in for the model. """
 
     last_prompts = {}
 
     def __init__(self, _ericai_config, _model_config, _timeout):
         self.last_usage = (1234, 567)
+        self.last_cost = 0.01
         self.on_behalf_of = None
 
     def complete(self, system_prompt, user_prompt):
@@ -623,7 +942,7 @@ class ExplainReportTestCase(unittest.TestCase):
     """ The full path from a report context to a structured explanation. """
 
     def setUp(self):
-        patcher = mock.patch.object(explain, "EricAIClient", FakeClient)
+        patcher = mock.patch.object(explain, "AIClient", FakeClient)
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -655,6 +974,7 @@ class ExplainReportTestCase(unittest.TestCase):
 
         self.assertEqual(result.input_tokens, 1234)
         self.assertEqual(result.output_tokens, 567)
+        self.assertEqual(result.cost, 0.01)
 
     def test_prompt_carries_the_triage_context(self):
         explain_report(self.context, self.config)

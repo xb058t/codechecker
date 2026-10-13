@@ -12,6 +12,25 @@ The contract of an explanation: the prompt, and the verdicts it allows.
 
 VERDICTS = ('LIKELY_TRUE_POSITIVE', 'LIKELY_FALSE_POSITIVE', 'UNCERTAIN')
 
+ANSWER_FIELDS = ('background', 'verdict', 'confidence', 'true_positive_case',
+                 'false_positive_case')
+
+
+def answer_schema():
+    """ For providers that enforce a schema; LiteLLM translates it. """
+    return {
+        'type': 'object',
+        'properties': {
+            'background': {'type': 'string'},
+            'verdict': {'type': 'string', 'enum': list(VERDICTS)},
+            'confidence': {'type': 'integer'},
+            'true_positive_case': {'type': 'string'},
+            'false_positive_case': {'type': 'string'}
+        },
+        'required': list(ANSWER_FIELDS),
+        'additionalProperties': False
+    }
+
 
 SYSTEM_PROMPT = """\
 You are assisting a developer who is triaging a static analysis report in \

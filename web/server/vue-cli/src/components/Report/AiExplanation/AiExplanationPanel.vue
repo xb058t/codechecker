@@ -70,7 +70,8 @@
           Which model should explain this report?
         </p>
         <p class="text-caption text-grey mb-4">
-          Only the models EricAI has loaded right now are listed.
+          EricAI models are listed while EricAI has them loaded; the others
+          are asked directly at their provider.
         </p>
 
         <div v-if="!models.length" class="text-caption text-grey">
@@ -97,6 +98,17 @@
                 class="ml-2"
               >
                 default
+              </v-chip>
+              <v-chip
+                size="x-small"
+                variant="outlined"
+                class="ml-auto"
+                :title="providerOf(model).title"
+              >
+                <v-icon start size="x-small">
+                  {{ providerOf(model).icon }}
+                </v-icon>
+                {{ providerOf(model).label }}
               </v-chip>
             </div>
 
@@ -149,7 +161,7 @@
         </div>
         <div class="text-caption text-grey mt-1 text-center">
           This usually takes 5 - 20 seconds. The report, its bug path and
-          the surrounding source are sent to EricAI.
+          the surrounding source are sent to {{ selectedProviderName }}.
         </div>
       </div>
 
@@ -265,6 +277,32 @@ const RELIABILITIES = {
 
 const NOT_RATED = { label: "Not rated", color: "grey", icon: "mdi-minus" };
 
+// Unknown providers are shown under their own name.
+const PROVIDERS = {
+  ericai: { label: "EricAI", icon: "mdi-domain" },
+  anthropic: { label: "Anthropic" },
+  gemini: { label: "Google" },
+  vertex_ai: { label: "Google Vertex AI" },
+  openai: { label: "OpenAI" },
+  azure: { label: "Azure OpenAI" },
+  deepseek: { label: "DeepSeek" },
+  mistral: { label: "Mistral" },
+  ollama: { label: "Ollama", icon: "mdi-server" }
+};
+
+function providerOf(model) {
+  // Older servers only offer EricAI models.
+  const id = model.provider || "ericai";
+  const known = PROVIDERS[id] || { label: id };
+  const direct = id !== "ericai";
+
+  return {
+    label: known.label,
+    icon: known.icon || "mdi-cloud-outline",
+    title: direct ? `Asked directly at ${known.label}` : "Asked through EricAI"
+  };
+}
+
 function speedOf(model) {
   return SPEEDS[model.speed] || NOT_RATED;
 }
@@ -277,6 +315,11 @@ function reliabilityOf(model) {
 const selectedModelName = computed(() => {
   const model = models.value.find(m => m.id === selectedModel.value);
   return model ? model.displayName : selectedModel.value;
+});
+
+const selectedProviderName = computed(() => {
+  const model = models.value.find(m => m.id === selectedModel.value);
+  return model ? providerOf(model).label : "the model's provider";
 });
 
 // The answer is HTML written by a model that has read untrusted source code,

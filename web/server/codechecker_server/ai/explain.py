@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from codechecker_common.logger import get_logger
 
 from .prompt import SYSTEM_PROMPT, VERDICTS, build_user_prompt
-from .client import AIProviderError, EricAIClient, parse_json_response
+from .client import AIClient, AIProviderError, parse_json_response
 
 LOG = get_logger('server')
 
@@ -56,6 +56,7 @@ class Explanation:
     # Not part of the Thrift response; used for cost reporting.
     input_tokens: int = None
     output_tokens: int = None
+    cost: float = None
 
 
 def _coerce_confidence(value):
@@ -102,7 +103,7 @@ def explain_report(context, ai_config, model_id=None, user=None,
         raise AIProviderError(
             f"The AI model '{model_id}' is not available on this server.")
 
-    client = EricAIClient(ai_config.ericai, model_config, ai_config.timeout)
+    client = AIClient(ai_config.ericai, model_config, ai_config.timeout)
     client.on_behalf_of = user
 
     user_prompt = build_user_prompt(context,
@@ -118,7 +119,7 @@ def explain_report(context, ai_config, model_id=None, user=None,
 
     if not isinstance(answer, dict):
         raise AIProviderError(
-            "EricAI did not return a JSON object.")
+            "The model did not return a JSON object.")
 
     background = answer.get('background')
     if not background:
@@ -133,4 +134,5 @@ def explain_report(context, ai_config, model_id=None, user=None,
         false_positive_case=answer.get('false_positive_case', ''),
         model=model_config.id,
         input_tokens=usage[0],
-        output_tokens=usage[1])
+        output_tokens=usage[1],
+        cost=client.last_cost)

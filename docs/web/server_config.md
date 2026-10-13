@@ -172,14 +172,21 @@ By default the server will use the value from your host configured by the
 ## AI report explanation
 The `ai` section turns on the **Explain** button of the *Report details* view,
 which asks a large language model to describe the background of a report and
-to argue whether it is a true or a false positive. Every request goes through
+to argue whether it is a true or a false positive. Each model is asked either
+through
 [EricAI](https://eteamspace.internal.ericsson.com/display/BFSTOS/GenAI+Enablers),
-which serves its models through a LiteLLM proxy.
+which serves its models through a LiteLLM proxy, or
+[directly at its provider](#direct-providers) with an API key. Both may be
+offered side by side.
+
+Requests are made with [LiteLLM](https://docs.litellm.ai/), which is
+installed with the server's other requirements.
 
 The feature is off by default. It is only offered to clients when `enabled` is
-`true`, the `ericai` section is complete **and** at least one model is listed,
-so an incomplete configuration silently leaves the button inactive rather than
-failing at request time.
+`true`, LiteLLM is installed **and** at least one model is usable: an EricAI
+model with a complete `ericai` section, or a direct model with an API key.
+Models that are not usable are skipped with a warning, so an incomplete
+configuration leaves them out of the GUI rather than failing at request time.
 
 ```json
 {
@@ -237,6 +244,15 @@ failing at request time.
         "model": "zai-org/GLM-5.2-FP8",
         "speed": "medium",
         "reliability": "high"
+      },
+      {
+        "id": "claude-opus",
+        "display_name": "Claude Opus 5.5",
+        "provider": "anthropic",
+        "model": "claude-opus-5-5",
+        "api_key": "$SECRET:anthropic_api_key$",
+        "speed": "medium",
+        "reliability": "high"
       }
     ]
   }
@@ -244,8 +260,9 @@ failing at request time.
 ```
 
 Note that the analysed source code, the checker message and the analyser's bug
-path are sent to EricAI. Only enable this for products whose source may be
-processed by it.
+path are sent to EricAI or to the provider of the chosen model. Only enable
+this for products whose source may be processed by them, and only list
+direct models whose provider is approved for that source.
 
 ### EricAI
 EricAI does not take a static API key: every request carries a short-lived
@@ -301,18 +318,51 @@ certificates to verify EricAI and the token endpoint with; on Debian and
 Ubuntu the system store is `/etc/ssl/certs/ca-certificates.crt`, on RHEL
 `/etc/pki/tls/certs/ca-bundle.crt`. A path that does not exist is ignored with
 a warning. Without `ca_bundle`, the `REQUESTS_CA_BUNDLE` environment variable
-is honoured.
+is honoured. `ca_bundle` applies to EricAI only, never to direct providers.
+
+The `ericai` section may be left out when every model is a direct one.
+
+### Direct providers
+A model with a `provider` other than `ericai` is asked directly at that
+provider, with its own `api_key`. Any
+[provider LiteLLM supports](https://docs.litellm.ai/docs/providers) may be
+named, for example `anthropic`, `gemini`, `deepseek`, `openai` or
+`mistral`; `model` is the provider's own model name, such as
+`claude-opus-5-5` or `gemini-3.6-flash`.
+
+```json
+{
+  "id": "gemini-flash",
+  "display_name": "Gemini 3.6 Flash",
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "api_key": "$SECRET:gemini_api_key$"
+}
+```
+
+Keep the keys in `server_secrets.json` or the environment (see
+[Secrets](#secrets)); the example configuration lists its direct models with
+empty keys, which leaves them out until a key is set. `api_base` points a
+model at a self-hosted or compatible endpoint, such as Ollama or vLLM, or at
+another LiteLLM proxy, and makes `api_key` optional.
+
+Where the provider supports it, the answer is constrained to the JSON schema
+the GUI renders; other models are asked for JSON only. Direct models are
+always offered: unlike EricAI's, they are not loaded on demand. The logged in
+user is never named to a direct provider, and a rejected API key is reported
+rather than retried. LiteLLM's price list gives the cost of each answer, which
+`scripts/debug_tools/try_ai_explain.py` prints.
 
 ### Models
-Each entry of `models` describes one EricAI model the GUI may offer. The
-example configuration lists `openai/gpt-oss-120b` as the default and four
-alternatives. EricAI keeps `openai/gpt-oss-120b` and `Qwen/Qwen3.8-27B-FP8-1M`
+Each entry of `models` describes one model the GUI may offer. The example
+configuration lists `openai/gpt-oss-120b` as the default, four other EricAI
+models and three direct ones. EricAI keeps `openai/gpt-oss-120b` and `Qwen/Qwen3.8-27B-FP8-1M`
 loaded at all times; the others are loaded on demand.
 
 Most EricAI models are elastic: they are only loaded onto GPUs on demand,
 which takes several minutes and may evict another team's model. The server
 therefore reads EricAI's model list (at most once a minute) and offers only
-the configured models that are loaded right now. A request for a model that
+the configured EricAI models that are loaded right now. A request for a model that
 is not loaded is refused rather than sent. If the list cannot be read, the
 configured models are offered unchecked.
 
@@ -326,8 +376,13 @@ models. *Default value*: `false`
 | --- | --- |
 | `id` | Identifier used by the API and shown in the model selector. |
 | `display_name` | Human readable name. Defaults to `id`. |
-| `model` | The model name EricAI routes. Defaults to `id`. |
-| `temperature` | Optional sampling temperature. *Default value*: `0.2` |
+| `provider` | `ericai`, or the LiteLLM provider to ask directly, e.g. `anthropic`. *Default value*: `ericai` |
+| `model` | The model name EricAI routes, or the provider's own model name. Defaults to `id`. |
+| `api_key` | Direct models only: the provider's API key. Required unless `api_base` is set. |
+| `api_base` | Direct models only, optional: the endpoint to send requests to instead of the provider's own. |
+| `temperature` | Optional sampling temperature. *Default value*: `0.2` for EricAI models; unset for direct ones, as some models reject it. Dropped for models that do not take it. |
+| `max_tokens` | Optional limit on the length of the answer. |
+| `reasoning_effort` | Optional: `low`, `medium` or `high`, for models that reason before answering. |
 | `speed` | Optional: `slow`, `medium` or `fast`. How quickly the model typically answers; shown in the GUI's model list. |
 | `reliability` | Optional: `low`, `medium` or `high`. How trustworthy its explanations have proven; shown in the GUI's model list. |
 

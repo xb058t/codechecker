@@ -6,7 +6,8 @@
 #
 # -------------------------------------------------------------------------
 """
-Which EricAI models can be asked right now.
+Which models can be asked right now. Direct models always can; EricAI's
+are checked.
 
 Most EricAI models are elastic: they are only loaded onto GPUs on demand,
 which takes several minutes and may evict another team's model. A request
@@ -132,9 +133,14 @@ class ModelCatalog:
 
     def available_models(self, ai_config):
         """
-        The models to offer: the configured ones that are loaded, and with
-        ``discover_models`` any other loaded chat model.
+        The models to offer: the direct ones, the configured EricAI ones
+        that are loaded, and with ``discover_models`` any other loaded chat
+        model of EricAI.
         """
+        ericai_models = [m for m in ai_config.models if not m.is_direct]
+        if not ericai_models and not ai_config.discovers_models:
+            return list(ai_config.models)
+
         statuses = self.statuses(ai_config)
         if statuses is None:
             return list(ai_config.models)
@@ -143,10 +149,11 @@ class ModelCatalog:
             status = statuses.get(name)
             return bool(status and status.loaded and not status.banned)
 
-        models = [m for m in ai_config.models if is_loaded(m.model)]
+        models = [m for m in ai_config.models
+                  if m.is_direct or is_loaded(m.model)]
 
-        if ai_config.discover_models:
-            configured = {m.model for m in ai_config.models} | \
+        if ai_config.discovers_models:
+            configured = {m.model for m in ericai_models} | \
                 {m.id for m in ai_config.models}
             models += [AIModelConfig({'id': status.id})
                        for status in sorted(statuses.values(),

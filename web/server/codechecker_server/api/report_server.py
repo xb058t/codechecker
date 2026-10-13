@@ -4981,7 +4981,8 @@ class ThriftRequestHandler:
                     displayName=model.display_name,
                     isDefault=model is default,
                     speed=model.speed,
-                    reliability=model.reliability)
+                    reliability=model.reliability,
+                    provider=model.provider)
             for model in models]
 
     @exc_to_thrift_reqfail
@@ -5003,7 +5004,7 @@ class ThriftRequestHandler:
         if not ai_config.pick_model(model, models):
             raise codechecker_api_shared.ttypes.RequestFailed(
                 codechecker_api_shared.ttypes.ErrorCode.GENERAL,
-                f"The AI model '{model}' is not loaded on EricAI right now. "
+                f"The AI model '{model}' is not available right now. "
                 "Choose another model." if model and models else
                 "None of the AI models is loaded on EricAI right now. "
                 "Try again later.")

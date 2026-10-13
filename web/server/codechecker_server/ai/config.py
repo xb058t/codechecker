@@ -10,6 +10,7 @@ The ``ai`` section of ``server_config.json``.
 See docs/web/server_config.md for the reference.
 """
 
+import importlib.util
 import os
 
 from codechecker_common.logger import get_logger
@@ -24,8 +25,11 @@ DEFAULT_MAX_PATH_EVENTS = 50
 SPEEDS = ('slow', 'medium', 'fast')
 RELIABILITIES = ('low', 'medium', 'high')
 
-# Every request goes through EricAI, with a short-lived access token that is
-# obtained in one of two ways.
+# Any other provider is asked directly through LiteLLM.
+ERICAI = 'ericai'
+
+# EricAI takes a short-lived access token that is obtained in one of two
+# ways.
 
 # As the server's own service principal (OAuth2 client credentials flow).
 CLIENT_CREDENTIAL_FIELDS = ('token_url', 'client_id', 'client_secret', 'scope')
@@ -35,8 +39,6 @@ class EricAIConfig:
     """ The EricAI endpoint and the credentials to reach it. """
 
     def __init__(self, raw):
-        raw = raw or {}
-
         # The LiteLLM endpoint of EricAI.
         self.api_url = raw.get('api_url')
         if not self.api_url:
@@ -83,9 +85,17 @@ class EricAIConfig:
         """ The ``verify`` argument of requests. """
         return self.ca_bundle or True
 
+    @property
+    def api_base(self):
+        """ The root of the OpenAI style API, under /chat/completions. """
+        root = self.api_url.rstrip('/')
+        if root.endswith('/chat/completions'):
+            root = root[:-len('/chat/completions')]
+        return root
+
 
 class AIModelConfig:
-    """ One EricAI model the GUI may offer. """
+    """ One model the GUI may offer, through EricAI or directly. """
 
     def __init__(self, raw):
         if not raw.get('id'):
@@ -94,14 +104,46 @@ class AIModelConfig:
         self.id = raw['id']
         self.display_name = raw.get('display_name', self.id)
 
-        # The model name EricAI routes.
+        self.provider = str(raw.get('provider') or ERICAI).strip().lower()
+
+        # The model name EricAI routes, or the provider's own model name.
         self.model = raw.get('model', self.id)
-        self.temperature = raw.get('temperature', 0.2)
+
+        # A self-hosted api_base may not need a key.
+        self.api_key = raw.get('api_key') or None
+        self.api_base = raw.get('api_base') or None
+        if self.is_direct and not (self.api_key or self.api_base):
+            raise ValueError(
+                f"AI model '{self.id}' of provider '{self.provider}' has no "
+                "'api_key'.")
+
+        # Some direct models, e.g. Claude, reject a temperature.
+        self.temperature = raw.get('temperature',
+                                   None if self.is_direct else 0.2)
+        self.max_tokens = raw.get('max_tokens')
+        self.reasoning_effort = raw.get('reasoning_effort')
 
         # How quick and how trustworthy its answers have proven, as rated
         # by the administrator. None when not rated.
         self.speed = self._rating(raw, 'speed', SPEEDS)
         self.reliability = self._rating(raw, 'reliability', RELIABILITIES)
+
+    @property
+    def is_direct(self):
+        """ Asked at its provider with an API key, not through EricAI. """
+        return self.provider != ERICAI
+
+    @property
+    def litellm_model(self):
+        """ The model name with the provider prefix LiteLLM routes by. """
+        if not self.is_direct:
+            # EricAI names contain slashes, e.g. 'openai/gpt-oss-120b'.
+            return f"litellm_proxy/{self.model}"
+
+        if self.model.startswith(f"{self.provider}/"):
+            return self.model
+
+        return f"{self.provider}/{self.model}"
 
     def _rating(self, raw, key, allowed):
         value = raw.get(key)
@@ -131,8 +173,11 @@ class AIConfig:
         # Also offer loaded EricAI models that are not listed in 'models'.
         self.discover_models = bool(raw.get('discover_models', False))
 
+        # Optional when every model is direct.
+        self.ericai = None
         try:
-            self.ericai = EricAIConfig(raw.get('ericai'))
+            if raw.get('ericai'):
+                self.ericai = EricAIConfig(raw['ericai'])
         except ValueError as ex:
             # The shipped config leaves the credentials empty on purpose.
             if self.enabled:
@@ -140,14 +185,31 @@ class AIConfig:
                             "not configured: %s Set the credentials through "
                             "$ENV:...$ or $SECRET:...$ in "
                             "server_config.json.", ex)
-            self.ericai = None
 
         self.models = []
         for entry in raw.get('models', []):
             try:
-                self.models.append(AIModelConfig(entry))
+                model = AIModelConfig(entry)
             except ValueError as ex:
-                LOG.warning("Ignoring invalid AI model configuration: %s", ex)
+                # The shipped config has empty keys.
+                if self.enabled:
+                    LOG.warning("Ignoring AI model: %s", ex)
+                continue
+
+            if not model.is_direct and not self.ericai:
+                if self.enabled:
+                    LOG.warning("Ignoring AI model '%s': EricAI is not "
+                                "configured.", model.id)
+                continue
+
+            self.models.append(model)
+
+        # Only looked up here, as it is slow to import.
+        self.has_litellm = importlib.util.find_spec('litellm') is not None
+        if self.enabled and not self.has_litellm:
+            LOG.warning("AI report explanation is enabled but the 'litellm' "
+                        "package is not installed; the feature stays turned "
+                        "off. Install web/requirements.txt.")
 
         configured_default = raw.get('default_model')
         if configured_default and not self.get_model(configured_default):
@@ -161,16 +223,21 @@ class AIConfig:
         self.default_model = configured_default or (
             self.models[0].id if self.models else None)
 
-        if self.enabled and self.ericai and not self.models \
-                and not self.discover_models:
+        if self.enabled and not self.models and \
+                not (self.ericai and self.discover_models):
             LOG.warning("AI report explanation is enabled but no model is "
                         "configured; the feature stays turned off.")
 
     @property
+    def discovers_models(self):
+        """ Whether loaded EricAI models are offered unconfigured. """
+        return self.discover_models and bool(self.ericai)
+
+    @property
     def is_available(self):
-        """ On, with EricAI configured and a model to offer. """
-        return self.enabled and bool(self.ericai) and \
-            (bool(self.models) or self.discover_models)
+        """ On, with LiteLLM installed and a model to offer. """
+        return self.enabled and self.has_litellm and \
+            (bool(self.models) or self.discovers_models)
 
     def get_model(self, model_id):
         """ ``model_id``, or the default when empty. None if unknown. """
