@@ -27,7 +27,9 @@ from codechecker_server.ai import client, explain
 from codechecker_server.ai.config import AIConfig, AIModelConfig
 from codechecker_server.ai.explain import (
     PathEvent, ReportContext, explain_report)
-from codechecker_server.ai.prompt import build_source_window, format_bug_path
+from codechecker_server.ai.prompt import (
+    build_path_excerpts, build_source_window, build_user_prompt, find_macros,
+    format_bug_path)
 
 
 class SourceWindowTestCase(unittest.TestCase):
@@ -85,6 +87,132 @@ class BugPathTestCase(unittest.TestCase):
 
     def test_empty_path_is_stated_explicitly(self):
         self.assertIn("did not record", format_bug_path([], 50))
+
+
+class PathExcerptTestCase(unittest.TestCase):
+    """ A bug path often leaves the window around the report. """
+
+    def setUp(self):
+        self.files = {
+            "a.c": [f"a {i}" for i in range(1, 101)],
+            "b.h": [f"b {i}" for i in range(1, 21)]}
+
+    def test_other_files_are_shown_around_the_step(self):
+        text, missing = build_path_excerpts(
+            self.files, [("b.h", 10)], ("a.c", 1, 100), 200)
+
+        self.assertIn("### b.h", text)
+        self.assertIn("b 5", text)
+        self.assertIn("b 15", text)
+        self.assertNotIn("b 4\n", text)
+        self.assertEqual(missing, [])
+
+    def test_lines_of_the_main_window_are_not_repeated(self):
+        text, _ = build_path_excerpts(
+            self.files, [("a.c", 50), ("a.c", 5)], ("a.c", 40, 60), 200)
+
+        self.assertNotIn("a 50", text)
+        self.assertIn("a 5\n", text)
+
+    def test_separate_ranges_are_marked(self):
+        text, _ = build_path_excerpts(
+            self.files, [("b.h", 1), ("b.h", 20)], ("a.c", 1, 100), 200)
+
+        self.assertIn("...", text)
+
+    def test_line_limit_is_respected(self):
+        text, _ = build_path_excerpts(
+            self.files, [("b.h", 10), ("a.c", 50)], ("x.c", 0, 0), 4)
+
+        self.assertEqual(text.count(" | "), 4)
+
+    def test_file_without_content_is_reported(self):
+        _, missing = build_path_excerpts(
+            self.files, [("c.h", 1), ("c.h", 2)], ("a.c", 1, 100), 200)
+
+        self.assertEqual(missing, ["c.h"])
+
+
+class MacroTestCase(unittest.TestCase):
+    """ A macro can hide the control flow that decides a report. """
+
+    def setUp(self):
+        self.files = {
+            "a.c": ["CLOSE_FINAL(out);", "UNKNOWN(out);", "int plain;"],
+            "io.h": [
+                "#define CLOSE_FINAL(file)\\",
+                "    if (file && fclose(file))\\",
+                "        BAIL;",
+                "#define BAIL return 1",
+                "#define UNUSED 1"]}
+
+    def test_multi_line_definition_is_found(self):
+        macros, _ = find_macros(self.files, [("a.c", 1)])
+
+        self.assertEqual(macros[0][:2], ("io.h", 1))
+        self.assertIn("fclose(file)", macros[0][2])
+
+    def test_macros_used_by_a_macro_are_found(self):
+        macros, _ = find_macros(self.files, [("a.c", 1)])
+
+        self.assertEqual([macro[1] for macro in macros], [1, 4])
+
+    def test_unused_macros_are_left_out(self):
+        macros, _ = find_macros(self.files, [("a.c", 3)])
+
+        self.assertEqual(macros, [])
+
+    def test_macro_without_definition_is_named(self):
+        _, undefined = find_macros(self.files, [("a.c", 2)])
+
+        self.assertEqual(undefined, ["UNKNOWN"])
+
+    def test_line_beyond_the_file_is_ignored(self):
+        self.assertEqual(find_macros(self.files, [("a.c", 9)]), ([], []))
+
+
+class UserPromptTestCase(unittest.TestCase):
+    """ What the model is told beyond the analysed file. """
+
+    def context(self, **kwargs):
+        return ReportContext(
+            checker_name="c", checker_message="m", file_path="a.c", line=1,
+            file_content="CLOSE(out);\nUNKNOWN(out);", **kwargs)
+
+    def test_path_files_and_macros_are_sent(self):
+        out = build_user_prompt(
+            self.context(path_events=[PathEvent("io.h", 2, "closed")],
+                         path_files={"io.h": "\n#define CLOSE(f) fclose(f)"}),
+            400, 50, 200)
+
+        self.assertIn("## Source around the bug path", out)
+        self.assertIn("### io.h", out)
+        self.assertIn("## Macros used on the bug path", out)
+        self.assertIn("io.h:2\n#define CLOSE(f) fclose(f)", out)
+
+    def test_what_is_missing_is_named(self):
+        out = build_user_prompt(
+            self.context(path_events=[PathEvent("a.c", 2, "step"),
+                                      PathEvent("io.h", 2, "step")]),
+            400, 50, 200)
+
+        self.assertIn("## Not provided", out)
+        self.assertIn("File: io.h", out)
+        self.assertIn("Macro definition: UNKNOWN", out)
+
+    def test_no_extra_sections_without_a_reason(self):
+        out = build_user_prompt(
+            ReportContext(checker_name="c", checker_message="m",
+                          file_path="a.c", line=1, file_content="int a;"),
+            400, 50, 200)
+
+        self.assertNotIn("## Source around", out)
+        self.assertNotIn("## Macros", out)
+        self.assertNotIn("## Not provided", out)
+
+    def test_model_is_told_not_to_guess(self):
+        self.assertIn("answer UNCERTAIN", explain.SYSTEM_PROMPT)
+        self.assertIn('"Not provided"', explain.SYSTEM_PROMPT)
 
 
 def ai_config(models=None, **raw):
